@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Optional, Any
+from typing import List, Optional, Any, Dict
 import datetime
 from db.schemas import TestRunStatus, FailureType
 
@@ -12,6 +12,57 @@ class DashboardMetrics(BaseModel):
     hallucination_rate: float
     failure_breakdown: dict[str, int]
     success_rate_trend: List[dict[str, Any]]
+
+
+class HallucinationTestCaseBase(BaseModel):
+    dataset: str
+    question: str
+    answer: str
+    is_hallucination: bool
+    confidence: float
+    class_probabilities: List[float]
+    average_entropy: Optional[float]
+    entropy_std: Optional[float]
+    token_entropies: List[float]
+    latency_ms: float
+
+
+class HallucinationTestCaseCreate(HallucinationTestCaseBase):
+    pass
+
+
+class HallucinationTestCaseInDB(HallucinationTestCaseBase):
+    id: int
+    test_run_id: int
+    created_at: datetime.datetime
+
+    class Config:
+        from_attributes = True
+
+
+class HallucinationTestRunBase(BaseModel):
+    model_name: str
+
+
+class HallucinationTestRunCreate(HallucinationTestRunBase):
+    datasets: Dict[str, int]  # {"TriviaQA": 10, "Jeopardy": 5, "Biology": 15}
+
+
+class HallucinationTestRunInDB(HallucinationTestRunBase):
+    id: int
+    created_at: datetime.datetime
+    completed_at: Optional[datetime.datetime]
+    status: TestRunStatus
+    datasets: Dict[str, int]
+    total_questions: int
+    completed_questions: int
+    hallucination_count: int
+    total_confidence: float
+    average_confidence: float
+    test_cases: List[HallucinationTestCaseInDB] = []
+
+    class Config:
+        from_attributes = True
 
 
 class TestCaseBase(BaseModel):

@@ -36,6 +36,42 @@ class FailureType(str, enum.Enum):
     INCORRECT_OUTPUT = "INCORRECT_OUTPUT"
 
 
+class HallucinationTestRun(Base):
+    __tablename__ = "hallucination_test_runs"
+    id = Column(Integer, primary_key=True, index=True)
+    model_name = Column(String, index=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    completed_at = Column(DateTime, nullable=True)
+    status = Column(Enum(TestRunStatus), default=TestRunStatus.PENDING)
+    datasets = Column(JSON)  # {"TriviaQA": 10, "Jeopardy": 5, "Biology": 15}
+    total_questions = Column(Integer, default=0)
+    completed_questions = Column(Integer, default=0)
+    hallucination_count = Column(Integer, default=0)
+    total_confidence = Column(Float, default=0.0)
+    average_confidence = Column(Float, default=0.0)
+    
+    test_cases = relationship("HallucinationTestCase", back_populates="test_run", cascade="all, delete-orphan")
+
+
+class HallucinationTestCase(Base):
+    __tablename__ = "hallucination_test_cases"
+    id = Column(Integer, primary_key=True, index=True)
+    test_run_id = Column(Integer, ForeignKey("hallucination_test_runs.id"))
+    dataset = Column(String)  # e.g., 'TriviaQA', 'Jeopardy', 'Biology'
+    question = Column(Text)
+    answer = Column(Text)
+    is_hallucination = Column(Boolean, default=False, index=True)
+    confidence = Column(Float)
+    class_probabilities = Column(JSON)  # [non_hallucination_prob, hallucination_prob]
+    average_entropy = Column(Float)
+    entropy_std = Column(Float)
+    token_entropies = Column(JSON)
+    latency_ms = Column(Float)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    test_run = relationship("HallucinationTestRun", back_populates="test_cases")
+
+
 class TestRun(Base):
     __tablename__ = "test_runs"
     id = Column(Integer, primary_key=True, index=True)

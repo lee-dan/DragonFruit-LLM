@@ -52,6 +52,46 @@ export interface DashboardMetrics {
   success_rate_trend: { date: string; rate: number }[];
 }
 
+export interface HallucinationTestRun {
+  id: number;
+  model_name: string;
+  created_at: string;
+  completed_at?: string;
+  status: "PENDING" | "RUNNING" | "COMPLETED" | "FAILED" | "CANCELLED";
+  datasets: Record<string, number>;
+  total_questions: number;
+  completed_questions: number;
+  hallucination_count: number;
+  total_confidence: number;
+  average_confidence: number;
+  test_cases: HallucinationTestCase[];
+}
+
+export interface HallucinationTestCase {
+  id: number;
+  test_run_id: number;
+  dataset: string;
+  question: string;
+  answer: string;
+  is_hallucination: boolean;
+  confidence: number;
+  class_probabilities: number[];
+  average_entropy?: number;
+  entropy_std?: number;
+  token_entropies: number[];
+  latency_ms: number;
+  created_at: string;
+}
+
+export interface HallucinationDashboardMetrics {
+  total_runs: number;
+  total_questions: number;
+  active_runs: number;
+  hallucination_rate: number;
+  average_confidence: number;
+  success_rate_trend: { timestamp: string; success_rate: number; total_questions: number }[];
+}
+
 export interface BigBenchTask {
   id: string;
   name: string;
@@ -156,6 +196,45 @@ export const cancelTestRun = async (run_id: number): Promise<TestRun> => {
 
 export const getEvolvedCases = async (run_id: number): Promise<EvolvedTestCase[]> => {
     const response = await apiClient.get(`/test-runs/${run_id}/evolved-cases`);
+    return response.data;
+}
+
+// Hallucination Test Run API Functions
+export const createHallucinationTestRun = async (
+    formData: { model_name: string; datasets: Record<string, number> }
+): Promise<HallucinationTestRun> => {
+  const response = await apiClient.post("/hallucinations/test-runs", formData);
+  return response.data;
+};
+
+export const getHallucinationTestRuns = async (): Promise<HallucinationTestRun[]> => {
+  const response = await apiClient.get("/hallucinations/test-runs");
+  return response.data;
+};
+
+export const getHallucinationTestRun = async (run_id: number): Promise<HallucinationTestRun> => {
+  const response = await apiClient.get(`/hallucinations/test-runs/${run_id}`);
+  return response.data;
+};
+
+export const getHallucinationTestCases = async (run_id: number): Promise<HallucinationTestCase[]> => {
+  const response = await apiClient.get(`/hallucinations/test-runs/${run_id}/test-cases`);
+  return response.data;
+};
+
+export const getHallucinationDashboardMetrics = async (timeRangeHours: number = 24): Promise<HallucinationDashboardMetrics> => {
+  const response = await apiClient.get("/hallucinations/dashboard-metrics", {
+    params: { time_range_hours: timeRangeHours }
+  });
+  return response.data;
+};
+
+export const deleteHallucinationTestRun = async (run_id: number): Promise<void> => {
+  await apiClient.delete(`/hallucinations/test-runs/${run_id}`);
+};
+
+export const cancelHallucinationTestRun = async (run_id: number): Promise<HallucinationTestRun> => {
+    const response = await apiClient.post(`/hallucinations/test-runs/${run_id}/cancel`);
     return response.data;
 }
 
