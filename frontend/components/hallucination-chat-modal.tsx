@@ -159,9 +159,20 @@ export function HallucinationChatModal({ isOpen, onClose }: HallucinationChatMod
                           {/* Pie Chart */}
                           <div className="text-center">
                             <div className="text-center mb-2">
-                              <span className={`text-lg font-bold ${message.hallucinationResult.class_probabilities[0] <= 0.5 ? 'text-red-600' : 'text-green-600'}`}>
-                                {(message.hallucinationResult.class_probabilities[0] * 100).toFixed(1)}%
-                              </span>
+                              {(() => {
+                                const trueProb = message.hallucinationResult.class_probabilities[0];
+                                const falseProb = message.hallucinationResult.class_probabilities[1];
+                                const isTrue = trueProb >= falseProb;
+                                const percentage = isTrue ? trueProb : falseProb;
+                                const label = isTrue ? 'TRUE' : 'FALSE';
+                                const color = isTrue ? 'text-green-600' : 'text-red-600';
+                                
+                                return (
+                                  <span className={`text-lg font-bold ${color}`}>
+                                    {(percentage * 100).toFixed(1)}% {label}
+                                  </span>
+                                );
+                              })()}
                             </div>
                             <div className="w-32 h-32 mx-auto">
                               <ResponsiveContainer width="100%" height="100%">
@@ -248,13 +259,10 @@ export function HallucinationChatModal({ isOpen, onClose }: HallucinationChatMod
                   <Bot className="w-4 h-4" />
                 </div>
                 <div className="rounded-lg p-3 bg-muted">
-                  <div className="flex items-center space-x-1">
-                    <span className="text-sm">Analyzing response</span>
-                    <div className="flex space-x-1">
-                      <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                      <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                      <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                    </div>
+                  <div className="flex space-x-1">
+                    <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+                    <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+                    <div className="w-1 h-1 bg-current rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
                   </div>
                 </div>
               </div>

@@ -1,8 +1,13 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from pydantic import BaseModel
-from typing import Optional, List
+from typing import Optional, List, Dict
 import sys
 import os
+from sqlalchemy.orm import Session
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Add the backend directory to the path so we can import services
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -12,6 +17,10 @@ from services.llama_inference import (
     detect_hallucination_from_entropy_sequence,
     setup_device
 )
+from services.hallucination_test_service import run_hallucination_test, get_hallucination_dashboard_metrics
+from models.models import HallucinationTestRunCreate, HallucinationTestRunInDB, HallucinationTestCaseInDB
+from db import schemas
+from db.database import get_db
 
 try:
     from llama_cpp import Llama
@@ -43,7 +52,7 @@ class HallucinationResponse(BaseModel):
 
 def get_llama_model():
     """Get or create the Llama model instance."""
-    model_path = "/Users/aneeshvathul/local_models/Llama-3.2-1B-Instruct-Q8_0.gguf"
+    model_path = os.getenv("LLAMA_MODEL_PATH")
     
     if not os.path.exists(model_path):
         raise HTTPException(
@@ -128,6 +137,98 @@ async def detect_hallucination(request: HallucinationRequest):
             status_code=500, 
             detail=f"Internal server error: {str(e)}"
         )
+
+
+@router.post("/test-runs", response_model=HallucinationTestRunInDB)
+async def create_hallucination_test_run(
+    test_run: HallucinationTestRunCreate,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db),
+):
+    """
+    Create a new hallucination test run.
+    """
+    db_test_run = schemas.HallucinationTestRun(**test_run.dict())
+    db.add(db_test_run)
+    db.commit()
+    db.refresh(db_test_run)
+
+    background_tasks.add_task(run_hallucination_test, db_test_run.id)
+
+    return db_test_run
+
+
+@router.get("/test-runs/{run_id}", response_model=HallucinationTestRunInDB)
+async def read_hallucination_test_run(run_id: int, db: Session = Depends(get_db)):
+    """
+    Get a specific hallucination test run by ID.
+    """
+    db_test_run = db.query(schemas.HallucinationTestRun).filter(schemas.HallucinationTestRun.id == run_id).first()
+    if db_test_run is None:
+        raise HTTPException(status_code=404, detail="HallucinationTestRun not found")
+    return db_test_run
+
+
+@router.get("/test-runs", response_model=List[HallucinationTestRunInDB])
+async def read_hallucination_test_runs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    """
+    Get all hallucination test runs.
+    """
+    test_runs = db.query(schemas.HallucinationTestRun).offset(skip).limit(limit).all()
+    return test_runs
+
+
+@router.delete("/test-runs/{run_id}", status_code=204)
+async def delete_hallucination_test_run(run_id: int, db: Session = Depends(get_db)):
+    """
+    Delete a hallucination test run.
+    """
+    db_test_run = db.query(schemas.HallucinationTestRun).filter(schemas.HallucinationTestRun.id == run_id).first()
+    if db_test_run is None:
+        raise HTTPException(status_code=404, detail="HallucinationTestRun not found")
+    db.delete(db_test_run)
+    db.commit()
+    return
+
+
+@router.post("/test-runs/{run_id}/cancel", response_model=HallucinationTestRunInDB)
+async def cancel_hallucination_test_run(run_id: int, db: Session = Depends(get_db)):
+    """
+    Cancel a running hallucination test run.
+    """
+    db_test_run = db.query(schemas.HallucinationTestRun).filter(schemas.HallucinationTestRun.id == run_id).first()
+    if db_test_run is None:
+        raise HTTPException(status_code=404, detail="HallucinationTestRun not found")
+
+    if db_test_run.status != schemas.TestRunStatus.RUNNING:
+        raise HTTPException(status_code=400, detail="Test run is not in a running state.")
+
+    db_test_run.status = schemas.TestRunStatus.CANCELLED
+    db.commit()
+    db.refresh(db_test_run)
+    return db_test_run
+
+
+@router.get("/test-runs/{run_id}/test-cases", response_model=List[HallucinationTestCaseInDB])
+async def get_hallucination_test_cases(run_id: int, db: Session = Depends(get_db)):
+    """
+    Get all test cases for a specific hallucination test run.
+    """
+    test_cases = db.query(schemas.HallucinationTestCase).filter(
+        schemas.HallucinationTestCase.test_run_id == run_id
+    ).all()
+    return test_cases
+
+
+@router.get("/dashboard-metrics")
+async def get_hallucination_dashboard_metrics(
+    time_range_hours: int = 24,
+    db: Session = Depends(get_db)
+):
+    """
+    Get dashboard metrics for hallucination tests.
+    """
+    return get_hallucination_dashboard_metrics(db, time_range_hours)
 
 
 @router.get("/health")
