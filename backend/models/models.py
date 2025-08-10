@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Any
 import datetime
 from db.schemas import TestRunStatus, FailureType
 
@@ -11,6 +11,7 @@ class DashboardMetrics(BaseModel):
     failure_rate: float
     hallucination_rate: float
     failure_breakdown: dict[str, int]
+    failure_rate_trend: List[dict[str, Any]]
 
 
 class TestCaseBase(BaseModel):
@@ -52,6 +53,22 @@ class TestCaseInDB(TestCaseBase):
     class Config:
         from_attributes = True
 
+
+class EvolvedTestCaseInDB(BaseModel):
+    id: int
+    original_test_case_id: int
+    evolved_prompt: str
+    created_at: datetime.datetime
+
+    class Config:
+        from_attributes = True
+
+
+class DeveloperInsight(BaseModel):
+    title: str
+    description: str
+    recommendation: str
+    severity: str
 
 class TestRunBase(BaseModel):
     model_name: str

@@ -63,10 +63,10 @@ def mine_and_evolve_hard_cases(run_id: int, db: Session, mutator_model: str = "g
             chain = prompt_template | structured_llm
             evolved = chain.invoke({})
             
-            if evolved.new_prompt:
+            if evolved and evolved.get('new_prompt'):
                 new_case = schemas.EvolvedTestCase(
                     original_test_case_id=case.id,
-                    evolved_prompt=evolved.new_prompt
+                    evolved_prompt=evolved['new_prompt']
                 )
                 db.add(new_case)
                 print(f"Evolved new prompt for case {case.id}")

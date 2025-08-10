@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
 
 from db.database import create_tables
-from api.v1 import test_runs, datasets
+from api.v1 import test_runs, datasets, insights
 
 
 @asynccontextmanager
@@ -38,6 +38,7 @@ app.add_middleware(
 )
 
 app.include_router(test_runs.router, prefix="/api/v1/test-runs", tags=["Test Runs"])
+app.include_router(insights.router, prefix="/api/v1/insights", tags=["Insights"])
 app.include_router(datasets.router, prefix="/api/v1", tags=["Datasets"])
 
 @app.get("/health", tags=["Status"])

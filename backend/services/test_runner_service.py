@@ -1,6 +1,6 @@
 import time
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 from db import schemas
 from db.database import SessionLocal
@@ -144,6 +144,27 @@ def get_dashboard_metrics(db: Session):
     hallucination_failures = db.query(schemas.FailureLog).filter(schemas.FailureLog.failure_type == 'HALLUCINATION').count()
     hallucination_rate = (hallucination_failures / total_test_cases) * 100 if total_test_cases > 0 else 0
 
+    # Failure rate trend for the last 24 hours
+    failure_rate_trend = []
+    now = datetime.utcnow()
+    for i in range(24):
+        hour_start = now - timedelta(hours=i + 1)
+        hour_end = now - timedelta(hours=i)
+
+        cases_in_hour = db.query(schemas.TestCase).filter(
+            schemas.TestCase.created_at.between(hour_start, hour_end)
+        ).count()
+
+        failures_in_hour = db.query(schemas.TestCase).filter(
+            schemas.TestCase.is_failure == True,
+            schemas.TestCase.created_at.between(hour_start, hour_end)
+        ).count()
+
+        hourly_failure_rate = (failures_in_hour / cases_in_hour) * 100 if cases_in_hour > 0 else 0
+        failure_rate_trend.append({"date": hour_start.strftime("%H:00"), "rate": hourly_failure_rate})
+    
+    failure_rate_trend.reverse()
+
     # Failure types breakdown
     failure_types = db.query(schemas.FailureLog.failure_type, func.count(schemas.FailureLog.id)).group_by(schemas.FailureLog.failure_type).all()
     
@@ -156,4 +177,5 @@ def get_dashboard_metrics(db: Session):
         "failure_rate": failure_rate,
         "hallucination_rate": hallucination_rate,
         "failure_breakdown": failure_breakdown,
+        "failure_rate_trend": failure_rate_trend,
     }

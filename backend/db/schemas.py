@@ -63,7 +63,8 @@ class TestCase(Base):
     prompt = Column(Text)
     response = Column(Text)
     latency_ms = Column(Float)
-    is_failure = Column(Boolean, default=False)
+    is_failure = Column(Boolean, default=False, index=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     test_run = relationship("TestRun", back_populates="test_cases")
     failure_logs = relationship("FailureLog", back_populates="test_case", cascade="all, delete-orphan")
@@ -73,7 +74,7 @@ class FailureLog(Base):
     __tablename__ = "failure_logs"
     id = Column(Integer, primary_key=True, index=True)
     test_case_id = Column(Integer, ForeignKey("test_cases.id"))
-    failure_type = Column(Enum(FailureType))
+    failure_type = Column(Enum(FailureType), index=True)
     log_message = Column(Text)
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 

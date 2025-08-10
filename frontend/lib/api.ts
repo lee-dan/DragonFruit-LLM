@@ -24,6 +24,7 @@ export interface TestRun {
 
 export interface TestCase {
   id: number;
+  test_run_id: number;
   source_type: string;
   category: string;
   prompt: string;
@@ -46,12 +47,27 @@ export interface DashboardMetrics {
   failure_rate: number;
   hallucination_rate: number;
   failure_breakdown: Record<string, number>;
+  failure_rate_trend: { date: string; rate: number }[];
 }
 
 export interface BigBenchTask {
   id: string;
   name: string;
   description: string;
+}
+
+export interface EvolvedTestCase {
+  id: number;
+  original_test_case_id: number;
+  evolved_prompt: string;
+  created_at: string;
+}
+
+export interface DeveloperInsight {
+  title: string;
+  description: string;
+  recommendation: string;
+  severity: string;
 }
 
 // API Functions
@@ -77,6 +93,11 @@ export const getDashboardMetrics = async (): Promise<DashboardMetrics> => {
   return response.data;
 };
 
+export const getDeveloperInsights = async (): Promise<DeveloperInsight[]> => {
+    const response = await apiClient.get("/insights/");
+    return response.data;
+};
+
 export const deleteTestRun = async (run_id: number): Promise<void> => {
   await apiClient.delete(`/test-runs/${run_id}`);
 };
@@ -88,5 +109,10 @@ export const getBigBenchTasks = async (): Promise<BigBenchTask[]> => {
 
 export const cancelTestRun = async (run_id: number): Promise<TestRun> => {
     const response = await apiClient.post(`/test-runs/${run_id}/cancel`);
+    return response.data;
+}
+
+export const getEvolvedCases = async (run_id: number): Promise<EvolvedTestCase[]> => {
+    const response = await apiClient.get(`/test-runs/${run_id}/evolved-cases`);
     return response.data;
 }
