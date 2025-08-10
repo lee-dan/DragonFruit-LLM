@@ -1,8 +1,8 @@
-# FailProofLLM: LLM Stress Testing & Robustness Evaluation Platform
+# DragonFruit: LLM Stress Testing & Robustness Evaluation Platform
 
 <div align="center">
 
-![FailProofLLM Logo](https://img.shields.io/badge/FailProofLLM-LLM%20Testing-blue?style=for-the-badge&logo=shield-check)
+![DragonFruit Logo](https://img.shields.io/badge/DragonFruit-LLM%20Testing-blue?style=for-the-badge&logo=shield-check)
 
 **AI Safety & Reliability Testing Framework**
 
@@ -18,7 +18,7 @@
 
 ## Executive Summary
 
-**FailProofLLM** is a comprehensive platform designed to systematically stress-test, analyze, and improve the robustness of Large Language Models (LLMs) and AI agents. Built for the **Hack Nation MIT hackathon**, this platform addresses the critical gap between LLM capabilities and reliability requirements through advanced adversarial testing, hallucination detection, and automated failure analysis.
+**DragonFruit** is a comprehensive platform designed to systematically stress-test, analyze, and improve the robustness of Large Language Models (LLMs) and AI agents. Built for the **Hack Nation MIT hackathon**, this platform addresses the critical gap between LLM capabilities and reliability requirements through advanced adversarial testing, hallucination detection, and automated failure analysis.
 
 ### Key Value Propositions
 
@@ -33,42 +33,47 @@
 
 ## System Architecture
 
-FailProofLLM is architected as a robust, scalable, and modular full-stack application with clear separation of concerns between frontend, backend, and AI core services.
+DragonFruit is architected as a robust, scalable, and modular full-stack application with clear separation of concerns between frontend, backend, and AI core services.
 
 ```mermaid
 graph TB
-    subgraph "Frontend Layer"
-        A[Next.js 15 + TypeScript] --> B[React Components]
-        B --> C[Shadcn UI + Tailwind]
-        B --> D[Recharts Visualization]
-        B --> E[Zustand State Management]
+    subgraph "Frontend"
+        A[Next.js 15 + TypeScript]
+        B[React Components]
+        C[Shadcn UI + Tailwind]
+        D[Recharts + Zustand]
     end
     
-    subgraph "Backend Layer"
-        F[FastAPI + Python] --> G[SQLite Database]
-        F --> H[SQLAlchemy ORM]
-        F --> I[Async Operations]
+    subgraph "Backend API"
+        E[FastAPI + Python]
+        F[SQLite + SQLAlchemy]
+        G[Async Operations]
     end
     
-    subgraph "AI Core Layer"
-        J[LangChain Integration] --> K[LLM-as-a-Judge]
-        J --> L[Hard Case Mining]
-        M[ShED-HD Models] --> N[Entropy Analysis]
-        O[Vercel AI Bridge] --> P[200+ Models]
-        Q[Local Inference] --> R[GGUF Models]
+    subgraph "AI Core"
+        H[LangChain Integration]
+        I[ShED-HD Models]
+        J[Vercel AI Bridge]
+        K[Local GGUF Models]
     end
     
     subgraph "Data Sources"
-        S[BIG-bench Datasets] --> T[15+ Challenge Sets]
-        U[Adversarial Mutators] --> V[7 Input Types]
-        W[Evolved Test Cases] --> X[AI-Generated]
+        L[BIG-bench Datasets]
+        M[Adversarial Mutators]
+        N[Evolved Test Cases]
     end
     
-    A <--> F
-    F <--> J
-    F <--> M
-    F <--> O
-    F <--> Q
+    A --> B --> C
+    B --> D
+    E --> F
+    E --> G
+    H --> I
+    H --> J
+    H --> K
+    L --> E
+    M --> E
+    N --> E
+    E <--> A
 ```
 
 ### Frontend Architecture
@@ -97,7 +102,7 @@ The backend is a high-performance RESTful API:
 
 ### 1. LangChain Integration
 
-FailProofLLM leverages LangChain as the foundation for advanced AI functionality:
+DragonFruit leverages LangChain as the foundation for advanced AI functionality:
 
 ```python
 # LLM-as-a-Judge Implementation
@@ -197,7 +202,7 @@ def generate_response_with_entropy(
 
 ### 1. Comprehensive Test Orchestration
 
-FailProofLLM provides a unified testing framework that combines multiple data sources:
+DragonFruit provides a unified testing framework that combines multiple data sources:
 
 ```python
 def run_stress_test(run_id: int):

@@ -12,11 +12,24 @@ const ibmPlexMono = IBM_Plex_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "FailProof - LLM Stress Testing Platform",
-  description:
-    "Enterprise-grade LLM stress testing with adversarial inputs and failure detection",
-  keywords: ["LLM", "testing", "hallucination", "AI", "enterprise"],
-  authors: [{ name: "FailProof Team" }],
+  title: "DragonFruit - LLM Stress Testing Platform",
+  description: "Comprehensive LLM stress testing and robustness evaluation platform",
+  keywords: ["LLM", "AI", "testing", "robustness", "hallucination detection"],
+  authors: [{ name: "DragonFruit Team" }],
+  creator: "DragonFruit Team",
+  openGraph: {
+    title: "DragonFruit - LLM Stress Testing Platform",
+    description: "Comprehensive LLM stress testing and robustness evaluation platform",
+    type: "website",
+  },
+  icons: {
+    icon: [
+      { url: '/favicon_io/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
+      { url: '/favicon_io/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+    ],
+    shortcut: '/favicon_io/favicon.ico',
+    apple: '/favicon_io/apple-touch-icon.png',
+  },
 }
 
 export const viewport: Viewport = {

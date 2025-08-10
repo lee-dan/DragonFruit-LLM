@@ -89,6 +89,7 @@ export interface HallucinationResponse {
   token_entropies: number[];
   entropy_sequence: number[];  // Clean entropy sequence for charting
   error?: string;
+}
 
 export interface AIModel {
   id: string;

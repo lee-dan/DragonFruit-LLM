@@ -3,6 +3,10 @@ from pydantic import BaseModel
 from typing import Optional, List
 import sys
 import os
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 # Add the backend directory to the path so we can import services
 sys.path.append(os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
@@ -43,7 +47,13 @@ class HallucinationResponse(BaseModel):
 
 def get_llama_model():
     """Get or create the Llama model instance."""
-    model_path = "/Users/aneeshvathul/local_models/Llama-3.2-1B-Instruct-Q8_0.gguf"
+    model_path = os.getenv("LLAMA_MODEL_PATH")
+    
+    if not model_path:
+        raise HTTPException(
+            status_code=500, 
+            detail="LLAMA_MODEL_PATH environment variable not set"
+        )
     
     if not os.path.exists(model_path):
         raise HTTPException(
@@ -137,8 +147,8 @@ async def hallucination_health_check():
     """
     try:
         # Check if model file exists
-        model_path = "/Users/aneeshvathul/local_models/Llama-3.2-1B-Instruct-Q8_0.gguf"
-        model_exists = os.path.exists(model_path)
+        model_path = os.getenv("LLAMA_MODEL_PATH")
+        model_exists = model_path and os.path.exists(model_path)
         
         # Check if ShedHD model path is set
         shedhd_path = os.getenv("SHEDHD_MODEL_PATH")

@@ -21,7 +21,7 @@ class VercelAIBridge:
         self.session = requests.Session()
         self.session.headers.update({
             'Content-Type': 'application/json',
-            'User-Agent': 'FailProofLLM-Backend/1.0'
+            'User-Agent': 'DragonFruit-Backend/1.0'
         })
         self._models_cache = None
         self._cache_timestamp = None

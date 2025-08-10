@@ -2,12 +2,12 @@
 
 import { usePathname } from "next/navigation"
 import Link from "next/link"
+import Image from "next/image"
 import { cn } from "@/lib/utils"
 import {
   Moon,
   PlusCircle,
   Sun,
-  Zap,
 } from "lucide-react"
 
 import { Button } from "@/components/ui/button"
@@ -57,8 +57,14 @@ export function Header() {
       <div className="container flex h-16 max-w-screen-2xl items-center">
         <div className="mr-4 hidden md:flex">
           <Link href="/" className="mr-6 flex items-center space-x-2">
-            <Zap className="h-6 w-6" />
-            <span className="hidden font-bold sm:inline-block">FailProof</span>
+            <Image 
+              src="/logo.png" 
+              alt="DragonFruit Logo" 
+              width={32} 
+              height={32} 
+              className="h-8 w-8"
+            />
+            <span className="hidden font-bold sm:inline-block">DragonFruit</span>
           </Link>
           <nav className="flex items-center gap-2 text-sm">
             {navLinks.map(({ href, label }) => (
@@ -91,8 +97,8 @@ export function Header() {
                 className="relative h-9 w-9 rounded-full"
               >
                 <Avatar className="h-9 w-9">
-                  <AvatarImage src="" alt="@failproof" />
-                  <AvatarFallback>FP</AvatarFallback>
+                  <AvatarImage src="" alt="@dragonfruit" />
+                  <AvatarFallback>DF</AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
@@ -100,10 +106,10 @@ export function Header() {
               <DropdownMenuLabel className="font-normal">
                 <div className="flex flex-col space-y-1">
                   <p className="text-sm font-medium leading-none">
-                    FailProof
+                    DragonFruit
                   </p>
                   <p className="text-xs leading-none text-muted-foreground">
-                    team@failproof.io
+                    team@dragonfruit.io
                   </p>
                 </div>
               </DropdownMenuLabel>
