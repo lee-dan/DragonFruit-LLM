@@ -64,6 +64,7 @@ class TestCase(Base):
     response = Column(Text)
     latency_ms = Column(Float)
     is_failure = Column(Boolean, default=False)
+    hallucination_likelihood = Column(Float, nullable=True)  # Percentage likelihood of hallucination from ShedHD
 
     test_run = relationship("TestRun", back_populates="test_cases")
     failure_logs = relationship("FailureLog", back_populates="test_case", cascade="all, delete-orphan")

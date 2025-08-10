@@ -33,37 +33,60 @@ def calculate_entropy_for_generation(logprobs_list):
         
     return entropies
 
-def detect_hallucination(logprobs: list[dict], model_path: str = "path/to/your/shed_hd_model.pth"):
+def detect_hallucination(logprobs: list[dict], model_path: str = None):
     """
     Detects hallucination in a response based on token log probabilities
     using a pre-trained ShED-HD model.
+    
+    Args:
+        logprobs: List of logprob dictionaries from model response
+        model_path: Optional path to ShedHD model (will use SHEDHD_MODEL_PATH env var if not provided)
+    
+    Returns:
+        bool: True if hallucination detected, False otherwise
     """
-    if not os.path.exists(model_path):
-        print(f"Warning: ShED-HD model not found at {model_path}. Skipping hallucination detection.")
-        return False
-
-    # 1. Load the pre-trained model
-    # Note: These parameters should match the ones used for training the model.
-    model = EntropyClassifier(input_dim=1, hidden_dim=128, n_layers=2, dropout=0.5)
-    model.load_state_dict(torch.load(model_path))
-    model.eval()
-
-    # 2. Calculate entropy from logprobs
+    # Calculate entropy from logprobs
     entropy_sequence = calculate_entropy_for_generation(logprobs)
 
     if not entropy_sequence:
         return False
     
-    # 3. Prepare tensor for the model
-    input_tensor = torch.tensor(entropy_sequence).float().unsqueeze(0).unsqueeze(-1)
-    
-    # 4. Get prediction
-    with torch.no_grad():
-        outputs = model(input_tensor)
-        _, predicted = torch.max(outputs.data, 1)
-        is_hallucination = predicted.item() == 1 # Assuming 1 is the hallucination class
+    # Use the new ShedHD function from llama_inference
+    try:
+        from .llama_inference import detect_hallucination_from_entropy_sequence
+        result = detect_hallucination_from_entropy_sequence(entropy_sequence)
+        
+        if 'error' in result:
+            print(f"Warning: ShedHD hallucination detection error: {result['error']}")
+            return False
+        
+        return result['is_hallucination']
+        
+    except ImportError:
+        # Fallback to old implementation if new function not available
+        if not model_path:
+            model_path = os.getenv("SHEDHD_MODEL_PATH", "path/to/your/shed_hd_model.pth")
+            
+        if not os.path.exists(model_path):
+            print(f"Warning: ShED-HD model not found at {model_path}. Skipping hallucination detection.")
+            return False
 
-    return is_hallucination
+        # 1. Load the pre-trained model
+        # Note: These parameters should match the ones used for training the model.
+        model = EntropyClassifier(input_dim=1, hidden_dims=[128, 64], dropout_rate=0.4)
+        model.load_state_dict(torch.load(model_path, map_location='cpu'))
+        model.eval()
+
+        # 3. Prepare tensor for the model
+        input_tensor = torch.tensor(entropy_sequence).float().unsqueeze(0).unsqueeze(-1)
+        
+        # 4. Get prediction
+        with torch.no_grad():
+            outputs = model(input_tensor)
+            _, predicted = torch.max(outputs.data, 1)
+            is_hallucination = predicted.item() == 1 # Assuming 1 is the hallucination class
+
+        return is_hallucination
 
 class FailureAnalysis(BaseModel):
     """Structured analysis of a model's response for potential failures."""
@@ -102,6 +125,9 @@ def detect_failures_with_llm(prompt: str, response: str, judge_model: str = "gpt
     """
     
     try:
+        # For failure analysis, we'll use the model service but need to handle structured output differently
+        # For now, we'll use the original ChatOpenAI approach for judge models
+        from langchain_openai import ChatOpenAI
         llm = ChatOpenAI(openai_api_key=os.getenv("OPENAI_API_KEY"), model_name=judge_model)
         structured_llm = llm.with_structured_output(FailureAnalysis)
         

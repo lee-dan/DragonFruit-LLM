@@ -30,6 +30,7 @@ export interface TestCase {
   response: string;
   latency_ms: number;
   is_failure: boolean;
+  hallucination_likelihood?: number;  // Percentage likelihood of hallucination from ShedHD
   failure_logs: FailureLog[];
 }
 

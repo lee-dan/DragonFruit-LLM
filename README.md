@@ -18,7 +18,8 @@ Follow these instructions to get the FailProof platform running on your local ma
 
 -   **Node.js** (v18 or later)
 -   **Python** (v3.10 or later)
--   An **OpenAI API Key**
+-   An **OpenAI API Key** (for OpenAI/Claude models)
+-   **Llama 3.2 1B model file** (optional, for local Llama testing)
 
 ### 1. Set Up the Backend
 
@@ -50,10 +51,12 @@ First, you'll need to set up and run the Python backend.
     ```
 
 5.  **Create a `.env` file:**
-    Create a new file named `.env` in the `backend` directory and add your OpenAI API key like this:
+    Create a new file named `.env` in the `backend` directory and add your configuration:
     ```
     OPENAI_API_KEY="your-api-key-here"
+    LLAMA_MODEL_PATH="/path/to/your/Llama-3.2-1B-Instruct-Q8_0.gguf"
     ```
+    Note: The `LLAMA_MODEL_PATH` is optional and only needed if you want to test with the local Llama model.
 
 6.  **Run the backend server:**
     ```bash
@@ -84,3 +87,20 @@ Next, set up and run the Next.js frontend in a separate terminal.
 ### 3. Start Testing!
 
 You can now open your browser to `http://localhost:3000` to access the FailProof dashboard and start running your first tests.
+
+## Supported Models
+
+The FailProof platform supports testing with the following models:
+
+### OpenAI Models
+- GPT-4o Mini
+- GPT-4o  
+- GPT-3.5 Turbo
+
+### Anthropic Models
+- Claude 3 Sonnet
+
+### Local Models
+- Llama 3.2 1B (requires local model file)
+
+To use the local Llama model, make sure you have the model file (e.g., `Llama-3.2-1B-Instruct-Q8_0.gguf`) and set the `LLAMA_MODEL_PATH` environment variable to point to it.

@@ -44,7 +44,7 @@ const availableModels = [
     { id: "gpt-4o", name: "GPT-4o" },
     { id: "gpt-3.5-turbo", name: "GPT-3.5 Turbo" },
     { id: "claude-3-sonnet", name: "Claude 3 Sonnet" },
-    { id: "llama-3.1-70b", name: "Llama 3.1 70B" },
+    { id: "llama-3.2-1b", name: "Llama 3.2 1B" },
 ]
 
 const availableMutators = [
@@ -69,7 +69,7 @@ export function CreateTestRunForm() {
     mutators: ["malformed_json"],
     datasets: [],
     use_evolved_cases: true,
-    detect_hallucinations: false,
+    detect_hallucinations: true,
     detect_failures_llm: true,
   });
 

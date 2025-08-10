@@ -18,6 +18,7 @@ class TestCaseBase(BaseModel):
     response: str
     latency_ms: float
     is_failure: bool
+    hallucination_likelihood: Optional[float] = None
 
 
 class TestCaseCreate(TestCaseBase):

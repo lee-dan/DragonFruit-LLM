@@ -36,6 +36,9 @@ def mine_and_evolve_hard_cases(run_id: int, db: Session, mutator_model: str = "g
     Analyze the provided failed test case and return your new, evolved prompt in the specified JSON format.
     """
     
+    # For hard case mining, we'll use the original ChatOpenAI approach for now
+    # since it needs structured output capabilities
+    from langchain_openai import ChatOpenAI
     llm = ChatOpenAI(openai_api_key=os.getenv("OPENAI_API_KEY"), model_name=mutator_model)
     structured_llm = llm.with_structured_output(EvolvedPrompt)
     

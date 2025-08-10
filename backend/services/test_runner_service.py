@@ -1,5 +1,6 @@
 import time
 import os
+import numpy as np
 from datetime import datetime
 from sqlalchemy.orm import Session
 from db import schemas
@@ -8,10 +9,11 @@ from services import (
     input_generator, 
     failure_analysis_service, 
     dataset_service,
-    hard_case_mining_service
+    hard_case_mining_service,
+    prompt_utils
 )
+from services.model_service import model_service
 from fastapi import BackgroundTasks
-from langchain_openai import ChatOpenAI
 from sqlalchemy import func
 
 def run_stress_test(run_id: int):
@@ -29,8 +31,6 @@ def run_stress_test(run_id: int):
 
         test_run.status = schemas.TestRunStatus.RUNNING
         db.commit()
-
-        llm = ChatOpenAI(openai_api_key=os.getenv("OPENAI_API_KEY"), model_name=test_run.model_name)
         
         mutators = test_run.mutators
         datasets = test_run.datasets
@@ -63,10 +63,27 @@ def run_stress_test(run_id: int):
             start_time = time.time()
             
             try:
+                # Wrap the prompt with markdown formatting directive if enabled
+                # For now, we'll always enable it, but this could be made configurable
+                use_markdown_wrapper = True  # Could be made configurable via test_run settings
+                
+                if use_markdown_wrapper:
+                    wrapped_prompt = prompt_utils.markdown_prompt_wrapper(prompt)
+                else:
+                    wrapped_prompt = prompt
+                
                 # We need to get logprobs for ShED-HD
-                response = llm.invoke(prompt, logprobs=True)
-                response_text = response.content
-                logprobs = response.response_metadata.get("logprobs", {}).get("content", [])
+                response = model_service.invoke_with_logprobs(
+                    test_run.model_name, 
+                    wrapped_prompt
+                )
+                response_text = response["content"]
+                # Handle both possible logprobs structures
+                response_metadata = response.get("response_metadata", {})
+                if isinstance(response_metadata, dict):
+                    logprobs = response_metadata.get("logprobs", {}).get("content", [])
+                else:
+                    logprobs = []
             except Exception as e:
                 response_text = f"Error calling LLM: {e}"
                 logprobs = []
@@ -74,14 +91,41 @@ def run_stress_test(run_id: int):
             latency_ms = (time.time() - start_time) * 1000
 
             is_hallucination = False
+            hallucination_likelihood = None
             if test_run.detect_hallucinations:
-                is_hallucination = failure_analysis_service.detect_hallucination(logprobs)
+                # Use the ShedHD function to get both detection and likelihood
+                try:
+                    from .llama_inference import detect_hallucination_from_entropy_sequence
+                    from .llama_inference import entropy_from_top_logprobs
+                    
+                    # Calculate entropy sequence from logprobs
+                    entropy_sequence = []
+                    for logprob_dict in logprobs:
+                        if logprob_dict and isinstance(logprob_dict, dict):
+                            entropy = entropy_from_top_logprobs(logprob_dict)
+                            if np.isfinite(entropy):
+                                entropy_sequence.append(entropy)
+                    
+                    if entropy_sequence:
+                        shedhd_result = detect_hallucination_from_entropy_sequence(entropy_sequence)
+                        if 'error' not in shedhd_result:
+                            is_hallucination = shedhd_result['is_hallucination']
+                            # Convert confidence to percentage (0-100)
+                            hallucination_likelihood = shedhd_result['confidence'] * 100
+                        else:
+                            print(f"Warning: ShedHD error: {shedhd_result['error']}")
+                            # Fallback to old method
+                            is_hallucination = failure_analysis_service.detect_hallucination(logprobs)
+                except Exception as e:
+                    print(f"Warning: ShedHD detection failed, falling back to old method: {e}")
+                    is_hallucination = failure_analysis_service.detect_hallucination(logprobs)
             
             llm_failures = []
             if test_run.detect_failures_llm:
                 llm_failures = failure_analysis_service.detect_failures_with_llm(prompt, response_text)
 
-            is_failure = is_hallucination or len(llm_failures) > 0
+            # Only count LLM-detected failures as actual failures, not hallucinations
+            is_failure = len(llm_failures) > 0
 
             test_case = schemas.TestCase(
                 test_run_id=run_id,
@@ -91,17 +135,12 @@ def run_stress_test(run_id: int):
                 response=response_text,
                 latency_ms=latency_ms,
                 is_failure=is_failure,
+                hallucination_likelihood=hallucination_likelihood,
             )
             db.add(test_case)
             db.flush() # Use flush to get the test_case.id before committing
 
-            if is_hallucination:
-                failure_log = schemas.FailureLog(
-                    test_case_id=test_case.id,
-                    failure_type=schemas.FailureType.HALLUCINATION,
-                    log_message="Detected by ShED-HD"
-                )
-                db.add(failure_log)
+            # Don't log hallucinations as failures - they're just scored
             
             for failure in llm_failures:
                 failure_log = schemas.FailureLog(

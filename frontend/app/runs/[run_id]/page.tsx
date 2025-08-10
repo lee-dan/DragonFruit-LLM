@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { getTestRun, TestRun, cancelTestRun } from "@/lib/api"
+import { getTestRun, TestRun, TestCase, cancelTestRun } from "@/lib/api"
 import {
   Table,
   TableBody,
@@ -18,6 +18,7 @@ import { Progress } from "@/components/ui/progress"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Button } from "@/components/ui/button"
 import { groupBy } from "lodash"
+import { Markdown } from "@/components/ui/markdown"
 
 type FilterStatus = "all" | "success" | "failure"
 
@@ -80,7 +81,7 @@ export default function TestRunDetailsPage() {
     }
   }
 
-  const formatPST = (dateString: string | null) => {
+  const formatPST = (dateString: string | null | undefined) => {
     if (!dateString) return "N/A";
     return new Date(dateString + "Z").toLocaleString("en-US", {
       timeZone: "America/Los_Angeles",
@@ -89,7 +90,7 @@ export default function TestRunDetailsPage() {
     });
   };
 
-  const formatElapsedTime = (start: string, end: string | null) => {
+  const formatElapsedTime = (start: string, end: string | null | undefined) => {
     if (!start) return "00:00:00";
     const startTime = new Date(start + "Z").getTime();
     const endTime = end ? new Date(end + "Z").getTime() : new Date().getTime();
@@ -196,24 +197,39 @@ export default function TestRunDetailsPage() {
               <div key={category} className="mb-6">
                 <h3 className="text-lg font-semibold mb-2 capitalize">{category.replace(/_/g, " ")}</h3>
                 <Accordion type="single" collapsible className="w-full">
-                  {cases.map((testCase) => (
+                  {(cases as TestCase[]).map((testCase) => (
                     <AccordionItem value={`item-${testCase.id}`} key={testCase.id}>
                       <AccordionTrigger>
                         <div className="flex items-center justify-between w-full pr-4">
                             <span className="truncate max-w-md">{testCase.prompt}</span>
-                            <Badge variant={testCase.is_failure ? "destructive" : "secondary"}>
-                                {testCase.is_failure ? "Failure" : "Success"}
-                            </Badge>
+                            <div className="flex items-center space-x-2">
+                                <Badge variant={testCase.is_failure ? "destructive" : "secondary"}>
+                                    {testCase.is_failure ? "Failure" : "Success"}
+                                </Badge>
+                                {testCase.hallucination_likelihood !== undefined && testCase.hallucination_likelihood !== null && (
+                                    <span className="text-sm text-muted-foreground">
+                                        {testCase.hallucination_likelihood.toFixed(1)}%
+                                    </span>
+                                )}
+                            </div>
                         </div>
                       </AccordionTrigger>
                       <AccordionContent className="space-y-4 p-4 bg-muted/50 rounded-lg">
                         <div>
-                            <h5 className="font-semibold">Full Prompt:</h5>
-                            <pre className="mt-1 whitespace-pre-wrap font-sans text-sm">{testCase.prompt}</pre>
+                            <h5 className="text-xl font-semibold text-blue-600 dark:text-blue-400">Full Prompt:</h5>
+                            <div className="mt-1">
+                                <Markdown className="text-sm prose-headings:text-base prose-h1:text-base prose-h2:text-base prose-h3:text-base prose-h4:text-base prose-h5:text-base prose-h6:text-base prose-pre:bg-transparent prose-pre:p-0 prose-pre:border-0">
+                                    {testCase.prompt}
+                                </Markdown>
+                            </div>
                         </div>
                         <div>
-                            <h5 className="font-semibold">Response:</h5>
-                            <pre className="mt-1 whitespace-pre-wrap font-sans text-sm">{testCase.response}</pre>
+                            <h5 className="text-xl font-semibold text-blue-600 dark:text-blue-400">Response:</h5>
+                            <div className="mt-1">
+                                <Markdown className="text-sm prose-headings:text-base prose-h1:text-base prose-h2:text-base prose-h3:text-base prose-h4:text-base prose-h5:text-base prose-h6:text-base prose-pre:bg-transparent prose-pre:p-0 prose-pre:border-0">
+                                    {testCase.response}
+                                </Markdown>
+                            </div>
                         </div>
                         <div>
                             <h5 className="font-semibold">Latency:</h5>
@@ -223,7 +239,7 @@ export default function TestRunDetailsPage() {
                             <div>
                                 <h5 className="font-semibold">Failure Logs:</h5>
                                 <ul className="list-disc pl-5 mt-1">
-                                    {(testCase.failure_logs || []).map(log => (
+                                    {(testCase.failure_logs || []).map((log: any) => (
                                         <li key={log.id}><strong>{log.failure_type}:</strong> {log.log_message}</li>
                                     ))}
                                 </ul>

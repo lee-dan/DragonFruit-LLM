@@ -12,7 +12,7 @@ def generate_malformed_json():
         "{'user_id': 123, 'status': 'active'}",  # Incorrect quotes
         '{"user_id": 123, "status": "act\nive"}', # Unescaped newline
     ]
-    prompts = [f"Analyze the following JSON data: ```json\n{m}\n```" for m in mutations]
+    prompts = [f"Analyze the following JSON data: `{m}`" for m in mutations]
     return prompts
 
 def generate_malformed_csv():
@@ -21,7 +21,7 @@ def generate_malformed_csv():
         'header1,"val,ue1",header2\nvalue1,value2', # Embedded comma without quotes
         'header1,header2\nvalue1,"unfinished quote', # Unclosed quote
     ]
-    prompts = [f"Process the following CSV data: ```csv\n{m}\n```" for m in mutations]
+    prompts = [f"Process the following CSV data: `{m}`" for m in mutations]
     return prompts
 
 def generate_malformed_html():
@@ -30,7 +30,7 @@ def generate_malformed_html():
         '<div class="container><p>Content</div>', # Unclosed attribute
         '<body><p>Hello <strong>World</body>', # Unclosed strong
     ]
-    prompts = [f"Render the following HTML: ```html\n{m}\n```" for m in mutations]
+    prompts = [f"Render the following HTML: `{m}`" for m in mutations]
     return prompts
 
 def generate_weird_unicode():
