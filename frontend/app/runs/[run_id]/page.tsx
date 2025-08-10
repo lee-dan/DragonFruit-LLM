@@ -29,7 +29,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Button } from "@/components/ui/button";
-import { AlertTriangle, Clock, Server, BrainCircuit, FlaskConical, Zap, CheckCircle, XCircle, FileText, ChevronRight, Loader2, StopCircle, Sparkles } from "lucide-react";
+import { AlertTriangle, Clock, Server, BrainCircuit, FlaskConical, Zap, CheckCircle, XCircle, FileText, ChevronRight, Loader2, StopCircle } from "lucide-react";
 import Link from "next/link";
 import {
   ResponsiveContainer,
@@ -41,6 +41,7 @@ import {
 } from "recharts";
 import { groupBy } from "lodash";
 import { DashboardLayout } from "@/components/layout/dashboard-layout";
+import { toast } from "sonner";
 
 type FilterType = "all" | "success" | "failure";
 
@@ -54,12 +55,28 @@ export default function TestRunPage() {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [evolvedCases, setEvolvedCases] = useState<EvolvedTestCase[]>([]);
   const [previousEvolvedCount, setPreviousEvolvedCount] = useState(0);
-  const [showNewCaseNotification, setShowNewCaseNotification] = useState(false);
+  const [isCheckingEvolvedCases, setIsCheckingEvolvedCases] = useState(false);
   const router = useRouter();
 
   // Move all computed values and useMemo hooks here, before any conditional returns
   const progress = testRun?.total_cases ? (testRun.completed_cases / testRun.total_cases) * 100 : 0;
   const progressColor = testRun?.status === 'COMPLETED' ? "bg-green-500" : "";
+
+  const fetchEvolvedCases = async () => {
+    try {
+      const evolved = await getEvolvedCases(runId);
+      
+      // Check if new cases were found
+      if (evolved.length > evolvedCases.length) {
+        toast.success(`🎉 ${evolved.length - evolvedCases.length} new evolved test cases found!`);
+      }
+      
+      setEvolvedCases(evolved);
+      setPreviousEvolvedCount(evolved.length);
+    } catch (error) {
+      console.log("Error fetching evolved cases:", error);
+    }
+  };
 
   const filteredTestCases = useMemo(() => {
     if (!testRun?.test_cases) return [];
@@ -100,14 +117,20 @@ export default function TestRunPage() {
           
           // Check if new cases were generated
           if (evolved.length > previousEvolvedCount && previousEvolvedCount > 0) {
-            setShowNewCaseNotification(true);
-            setTimeout(() => setShowNewCaseNotification(false), 5000);
+            toast.success(`🎉 ${evolved.length - previousEvolvedCount} new evolved test cases found!`);
+          }
+          
+          // If this is the first time we're getting evolved cases and the test run is completed,
+          // show a notification that cases were found
+          if (evolved.length > 0 && previousEvolvedCount === 0 && testRun?.status === "COMPLETED") {
+            toast.success(`🎯 ${evolved.length} evolved test cases generated from test failures!`);
           }
           
           setEvolvedCases(evolved);
           setPreviousEvolvedCount(evolved.length);
         } catch (error) {
           console.log("No evolved cases yet or error fetching:", error);
+          // Don't set evolvedCases to empty array here, keep previous state
         }
         
         return response;
@@ -124,6 +147,20 @@ export default function TestRunPage() {
       const updatedRun = await fetchTestRun();
       if (updatedRun && (updatedRun.status === "COMPLETED" || updatedRun.status === "FAILED" || updatedRun.status === "CANCELLED")) {
         clearInterval(intervalId);
+        
+        // When test run completes, fetch evolved cases one more time after a short delay
+        // to ensure any newly generated cases are captured
+        setIsCheckingEvolvedCases(true);
+        setTimeout(async () => {
+          await fetchEvolvedCases();
+          setIsCheckingEvolvedCases(false);
+          toast.info("🔍 Automatically checked for evolved test cases");
+        }, 2000);
+        
+        // Also fetch evolved cases again after a longer delay to catch any late-generated cases
+        setTimeout(async () => {
+          await fetchEvolvedCases();
+        }, 10000);
       }
     }, 3000);
 
@@ -202,35 +239,7 @@ export default function TestRunPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* New Evolved Case Notification */}
-        {showNewCaseNotification && (
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4 animate-in slide-in-from-top-2 duration-300">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center justify-center w-8 h-8 bg-blue-100 rounded-full">
-                <Sparkles className="h-4 w-4 text-blue-600" />
-              </div>
-              <div className="flex-1">
-                <h4 className="font-semibold text-blue-900">New Hard Cases Generated!</h4>
-                <p className="text-sm text-blue-700">
-                  {evolvedCases.length - previousEvolvedCount} new evolved test cases have been created from test failures.
-                  {evolvedCases.length > 0 && (
-                    <span className="block mt-1">
-                      Total evolved cases: {evolvedCases.length}
-                    </span>
-                  )}
-                </p>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowNewCaseNotification(false)}
-                className="text-blue-600 hover:text-blue-800"
-              >
-                ×
-              </Button>
-            </div>
-          </div>
-        )}
+
 
         <div className="flex items-center justify-between">
             <h1 className="text-3xl font-bold tracking-tight">Test Run #{runId}</h1>
@@ -273,6 +282,10 @@ export default function TestRunPage() {
                     <div>
                         <h4 className="font-semibold">Evolved Cases</h4>
                         <p>{testRun.use_evolved_cases ? "Enabled" : "Disabled"}</p>
+                    </div>
+                    <div>
+                        <h4 className="font-semibold">Business Rules</h4>
+                        <p>{testRun.detect_failures_llm ? "Enabled (LLM-as-a-Judge)" : "Disabled"}</p>
                     </div>
                 </CardContent>
             </Card>
@@ -322,7 +335,13 @@ export default function TestRunPage() {
                       Mining Active
                     </Badge>
                   )}
-                  {testRun.status === "COMPLETED" && evolvedCases.length === 0 && (
+                  {testRun.status === "COMPLETED" && isCheckingEvolvedCases && (
+                    <Badge variant="secondary" className="ml-2">
+                      <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                      Checking...
+                    </Badge>
+                  )}
+                  {testRun.status === "COMPLETED" && !isCheckingEvolvedCases && evolvedCases.length === 0 && (
                     <Badge variant="outline" className="ml-2">
                       No Cases Generated
                     </Badge>
@@ -342,10 +361,31 @@ export default function TestRunPage() {
                               These can be used to create follow-up test runs for deeper evaluation.
                             </CardDescription>
                           </div>
-                          <Button onClick={handleCreateFollowUp} className="flex items-center gap-2">
-                            <FlaskConical className="h-4 w-4" />
-                            Create Follow-up Run
-                          </Button>
+                          <div className="flex items-center gap-2">
+                                                          <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={async () => {
+                                  setIsCheckingEvolvedCases(true);
+                                  await fetchEvolvedCases();
+                                  setTimeout(() => setIsCheckingEvolvedCases(false), 1000);
+                                  toast.info("✅ Checked for new evolved test cases");
+                                }}
+                                className="flex items-center gap-2"
+                                disabled={isCheckingEvolvedCases}
+                              >
+                                {isCheckingEvolvedCases ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Loader2 className="h-4 w-4" />
+                                )}
+                                {isCheckingEvolvedCases ? "Checking..." : "Check for More"}
+                              </Button>
+                            <Button onClick={handleCreateFollowUp} className="flex items-center gap-2">
+                              <FlaskConical className="h-4 w-4" />
+                              Create Follow-up Run
+                            </Button>
+                          </div>
                         </div>
                       </CardHeader>
                     </Card>
@@ -393,8 +433,7 @@ export default function TestRunPage() {
                                       From Test Case #{caseItem.original_test_case_id}
                                     </Badge>
                                     <Badge variant="default" className="text-xs animate-pulse">
-                                      <Sparkles className="h-3 w-3 mr-1" />
-                                      New
+                                      ✨ New
                                     </Badge>
                                   </div>
                                   
@@ -521,16 +560,66 @@ export default function TestRunPage() {
                   <Card>
                     <CardContent className="p-6 text-center">
                       <div className="flex flex-col items-center gap-3">
-                        <FileText className="h-12 w-12 text-muted-foreground" />
-                        <div>
-                          <h3 className="text-lg font-semibold">No Evolved Cases Generated</h3>
-                          <p className="text-sm text-muted-foreground">
-                            {testRun.status === "COMPLETED" 
-                              ? "No test failures were detected, so no evolved cases were needed."
-                              : "Evolved cases will appear here once the test run completes and hard case mining finishes."
-                            }
-                          </p>
-                        </div>
+                        {testRun.status === "COMPLETED" && isCheckingEvolvedCases ? (
+                          <>
+                            <div className="relative">
+                              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                                <BrainCircuit className="h-6 w-6 text-blue-600" />
+                              </div>
+                              <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-500 rounded-full flex items-center justify-center">
+                                <Loader2 className="h-3 w-3 text-white animate-spin" />
+                              </div>
+                            </div>
+                            <div>
+                              <h3 className="text-lg font-semibold">Checking for Evolved Cases</h3>
+                              <p className="text-sm text-muted-foreground">
+                                The test run has completed. Checking if any evolved test cases were generated...
+                              </p>
+                            </div>
+                          </>
+                        ) : testRun.status === "COMPLETED" ? (
+                          <>
+                            <FileText className="h-12 w-12 text-muted-foreground" />
+                            <div className="space-y-3">
+                              <h3 className="text-lg font-semibold">No Evolved Cases Generated</h3>
+                              <p className="text-sm text-muted-foreground">
+                                No test failures were detected, so no evolved cases were needed.
+                              </p>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={async () => {
+                                  setIsCheckingEvolvedCases(true);
+                                  await fetchEvolvedCases();
+                                  setTimeout(() => setIsCheckingEvolvedCases(false), 1000);
+                                  toast.info("✅ Checked for new evolved test cases");
+                                }}
+                                className="flex items-center gap-2"
+                                disabled={isCheckingEvolvedCases}
+                              >
+                                {isCheckingEvolvedCases ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Loader2 className="h-4 w-4" />
+                                )}
+                                {isCheckingEvolvedCases ? "Checking..." : "Check Again"}
+                              </Button>
+                            </div>
+                          </>
+                        ) : (
+                          <>
+                            <FileText className="h-12 w-12 text-muted-foreground" />
+                            <div>
+                              <h3 className="text-lg font-semibold">No Evolved Cases Generated</h3>
+                              <p className="text-sm text-muted-foreground">
+                                {testRun.status === "PENDING" 
+                                  ? "Evolved cases will appear here once the test run completes and hard case mining finishes."
+                                  : "No test failures were detected, so no evolved cases were needed."
+                                }
+                              </p>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </CardContent>
                   </Card>

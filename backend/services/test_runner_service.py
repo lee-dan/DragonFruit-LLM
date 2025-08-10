@@ -8,8 +8,10 @@ from services import (
     input_generator, 
     failure_analysis_service, 
     dataset_service,
-    hard_case_mining_service
+    hard_case_mining_service,
+    business_rules_service
 )
+from services.vercel_ai_bridge import get_vercel_bridge, is_vercel_model
 from fastapi import BackgroundTasks
 from langchain_openai import ChatOpenAI
 from sqlalchemy import func
@@ -30,7 +32,17 @@ def run_stress_test(run_id: int):
         test_run.status = schemas.TestRunStatus.RUNNING
         db.commit()
 
-        llm = ChatOpenAI(openai_api_key=os.getenv("OPENAI_API_KEY"), model_name=test_run.model_name)
+        # Determine which LLM interface to use
+        if is_vercel_model(test_run.model_name):
+            # Use Vercel AI Bridge for Vercel SDK models
+            print(f"Using Vercel AI Bridge for model: {test_run.model_name}")
+            bridge = get_vercel_bridge()
+            llm = None  # We'll use bridge.generate_text() directly
+        else:
+            # Use traditional LangChain for existing models
+            print(f"Using LangChain for model: {test_run.model_name}")
+            llm = ChatOpenAI(openai_api_key=os.getenv("OPENAI_API_KEY"), model_name=test_run.model_name)
+            bridge = None
         
         mutators = test_run.mutators
         datasets = test_run.datasets
@@ -63,10 +75,21 @@ def run_stress_test(run_id: int):
             start_time = time.time()
             
             try:
-                # We need to get logprobs for ShED-HD
-                response = llm.invoke(prompt, logprobs=True)
-                response_text = response.content
-                logprobs = response.response_metadata.get("logprobs", {}).get("content", [])
+                if bridge:
+                    # Use Vercel AI Bridge
+                    response = bridge.generate_text(
+                        model_name=test_run.model_name,
+                        prompt=prompt,
+                        max_tokens=1000,
+                        temperature=0.7
+                    )
+                    response_text = response.get('content', '')
+                    logprobs = []  # Vercel AI SDK doesn't provide logprobs yet
+                else:
+                    # Use traditional LangChain
+                    response = llm.invoke(prompt, logprobs=True)
+                    response_text = response.content
+                    logprobs = response.response_metadata.get("logprobs", {}).get("content", [])
             except Exception as e:
                 response_text = f"Error calling LLM: {e}"
                 logprobs = []
@@ -79,7 +102,25 @@ def run_stress_test(run_id: int):
             
             llm_failures = []
             if test_run.detect_failures_llm:
-                llm_failures = failure_analysis_service.detect_failures_with_llm(prompt, response_text)
+                # Get active business rules for this model
+                business_rules = business_rules_service.get_business_rules(
+                    db, 
+                    model_name=test_run.model_name
+                )
+                business_rules_dict = [
+                    {
+                        "name": rule.name,
+                        "constraint_text": rule.constraint_text,
+                        "severity": rule.severity
+                    }
+                    for rule in business_rules
+                ]
+                
+                llm_failures = failure_analysis_service.detect_failures_with_llm(
+                    prompt, 
+                    response_text, 
+                    business_rules=business_rules_dict
+                )
 
             is_failure = is_hallucination or len(llm_failures) > 0
 
@@ -104,9 +145,14 @@ def run_stress_test(run_id: int):
                 db.add(failure_log)
             
             for failure in llm_failures:
+                # Map POLICY_VIOLATION to POLICY to match the schema enum
+                failure_type = failure["failure_type"]
+                if failure_type == "POLICY_VIOLATION":
+                    failure_type = "POLICY"
+                
                 failure_log = schemas.FailureLog(
                     test_case_id=test_case.id,
-                    failure_type=schemas.FailureType[failure["failure_type"]],
+                    failure_type=schemas.FailureType[failure_type],
                     log_message=failure["explanation"]
                 )
                 db.add(failure_log)
@@ -130,40 +176,87 @@ def run_stress_test(run_id: int):
     finally:
         db.close()
 
-def get_dashboard_metrics(db: Session):
+def get_dashboard_metrics(db: Session, time_range_hours: int = 24):
     """
     Calculates and returns the metrics for the dashboard.
+    
+    Args:
+        time_range_hours: Time range in hours for the trend data
     """
     total_runs = db.query(schemas.TestRun).count()
     total_test_cases = db.query(schemas.TestCase).count()
     active_runs = db.query(schemas.TestRun).filter(schemas.TestRun.status == 'RUNNING').count()
 
     total_failures = db.query(schemas.TestCase).filter(schemas.TestCase.is_failure == True).count()
-    failure_rate = (total_failures / total_test_cases) * 100 if total_test_cases > 0 else 0
+    success_rate = ((total_test_cases - total_failures) / total_test_cases) * 100 if total_test_cases > 0 else 0
     
     hallucination_failures = db.query(schemas.FailureLog).filter(schemas.FailureLog.failure_type == 'HALLUCINATION').count()
     hallucination_rate = (hallucination_failures / total_test_cases) * 100 if total_test_cases > 0 else 0
 
-    # Failure rate trend for the last 24 hours
-    failure_rate_trend = []
+    # Success rate trend for the specified time range
+    success_rate_trend = []
     now = datetime.utcnow()
-    for i in range(24):
-        hour_start = now - timedelta(hours=i + 1)
-        hour_end = now - timedelta(hours=i)
-
-        cases_in_hour = db.query(schemas.TestCase).filter(
-            schemas.TestCase.created_at.between(hour_start, hour_end)
-        ).count()
-
-        failures_in_hour = db.query(schemas.TestCase).filter(
-            schemas.TestCase.is_failure == True,
-            schemas.TestCase.created_at.between(hour_start, hour_end)
-        ).count()
-
-        hourly_failure_rate = (failures_in_hour / cases_in_hour) * 100 if cases_in_hour > 0 else 0
-        failure_rate_trend.append({"date": hour_start.strftime("%H:00"), "rate": hourly_failure_rate})
     
-    failure_rate_trend.reverse()
+    # Determine granularity based on time range
+    if time_range_hours <= 1:
+        # For 1 hour: 10-minute intervals
+        intervals = 6
+        interval_minutes = 10
+        time_format = "%H:%M"
+    elif time_range_hours <= 6:
+        # For 6 hours: 30-minute intervals
+        intervals = 12
+        interval_minutes = 30
+        time_format = "%H:%M"
+    elif time_range_hours <= 24:
+        # For 24 hours: 1-hour intervals
+        intervals = time_range_hours
+        interval_minutes = 60
+        time_format = "%H:00"
+    else:
+        # For 1 week: 6-hour intervals
+        intervals = 28
+        interval_minutes = 360
+        time_format = "%m/%d %H:00"
+    
+    for i in range(intervals):
+        if time_range_hours <= 1:
+            interval_start = now - timedelta(minutes=(i + 1) * interval_minutes)
+            interval_end = now - timedelta(minutes=i * interval_minutes)
+        else:
+            interval_start = now - timedelta(minutes=(i + 1) * interval_minutes)
+            interval_end = now - timedelta(minutes=i * interval_minutes)
+
+        cases_in_interval = db.query(schemas.TestCase).filter(
+            schemas.TestCase.created_at.between(interval_start, interval_end)
+        ).count()
+
+        failures_in_interval = db.query(schemas.TestCase).filter(
+            schemas.TestCase.is_failure == True,
+            schemas.TestCase.created_at.between(interval_start, interval_end)
+        ).count()
+
+        if cases_in_interval > 0:
+            interval_success_rate = ((cases_in_interval - failures_in_interval) / cases_in_interval) * 100
+        else:
+            # For intervals with no data, use null instead of 0 to avoid misleading flat lines
+            interval_success_rate = None
+        
+        success_rate_trend.append({
+            "date": interval_start.strftime(time_format), 
+            "rate": interval_success_rate,
+            "cases": cases_in_interval  # Add case count for debugging
+        })
+    
+    success_rate_trend.reverse()
+    
+    # Add metadata about data quality
+    total_intervals_with_data = sum(1 for item in success_rate_trend if item['rate'] is not None)
+    data_quality = {
+        "total_intervals": len(success_rate_trend),
+        "intervals_with_data": total_intervals_with_data,
+        "data_coverage_percent": (total_intervals_with_data / len(success_rate_trend)) * 100 if success_rate_trend else 0
+    }
 
     # Failure types breakdown
     failure_types = db.query(schemas.FailureLog.failure_type, func.count(schemas.FailureLog.id)).group_by(schemas.FailureLog.failure_type).all()
@@ -174,8 +267,9 @@ def get_dashboard_metrics(db: Session):
         "total_runs": total_runs,
         "total_test_cases": total_test_cases,
         "active_runs": active_runs,
-        "failure_rate": failure_rate,
+        "success_rate": success_rate,
         "hallucination_rate": hallucination_rate,
         "failure_breakdown": failure_breakdown,
-        "failure_rate_trend": failure_rate_trend,
+        "success_rate_trend": success_rate_trend,
+        "data_quality": data_quality,
     }

@@ -11,11 +11,23 @@ router = APIRouter()
 
 
 @router.get("/dashboard-metrics/", response_model=DashboardMetrics)
-def get_dashboard_metrics_endpoint(db: Session = Depends(get_db)):
+def get_dashboard_metrics_endpoint(
+    time_range_hours: int = 24,
+    db: Session = Depends(get_db)
+):
     """
     Returns the metrics for the dashboard.
+    
+    Args:
+        time_range_hours: Time range in hours for the trend data (default: 24)
+                         Supported values: 1, 6, 24, 168 (1 week)
     """
-    return test_runner_service.get_dashboard_metrics(db)
+    # Validate time range
+    allowed_ranges = [1, 6, 24, 168]
+    if time_range_hours not in allowed_ranges:
+        time_range_hours = 24
+    
+    return test_runner_service.get_dashboard_metrics(db, time_range_hours)
 
 
 @router.post("/", response_model=TestRunInDB)
@@ -79,10 +91,12 @@ def get_evolved_cases_for_run(run_id: int, db: Session = Depends(get_db)):
     """
     Retrieves all evolved test cases generated from a specific test run.
     """
-    failed_case_ids = db.query(schemas.TestCase.id).filter(
+    from sqlalchemy import select
+    
+    failed_case_ids = select(schemas.TestCase.id).where(
         schemas.TestCase.test_run_id == run_id,
         schemas.TestCase.is_failure == True
-    ).subquery()
+    )
 
     evolved_cases = db.query(schemas.EvolvedTestCase).filter(
         schemas.EvolvedTestCase.original_test_case_id.in_(failed_case_ids)

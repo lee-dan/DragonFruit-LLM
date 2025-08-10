@@ -5,6 +5,8 @@ import {
   Shield,
   TestTube2,
   Zap,
+  CheckCircle,
+  Clock,
 } from "lucide-react"
 import {
     Area,
@@ -16,6 +18,7 @@ import {
     YAxis,
   } from "recharts"
 import { LucideIcon } from "lucide-react"
+import { useState } from "react"
 
 import {
   Card,
@@ -23,6 +26,13 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { getDashboardMetrics } from "@/lib/api"
 import { useQuery } from "@tanstack/react-query"
 
@@ -59,15 +69,26 @@ function MetricCard({ title, value, description, icon: Icon, color, children }: 
     )
   }
 
+const TIME_RANGES = [
+  { value: "1", label: "Last Hour", description: "10-min intervals" },
+  { value: "6", label: "Last 6 Hours", description: "30-min intervals" },
+  { value: "24", label: "Last 24 Hours", description: "1-hour intervals" },
+  { value: "168", label: "Last Week", description: "6-hour intervals" },
+]
+
 export function MetricsOverview() {
+  const [timeRange, setTimeRange] = useState("24")
+  
   const {
     data: metrics,
     isLoading,
     isError,
   } = useQuery({
-    queryKey: ["dashboardMetrics"],
-    queryFn: getDashboardMetrics,
+    queryKey: ["dashboardMetrics", timeRange],
+    queryFn: () => getDashboardMetrics(parseInt(timeRange)),
   })
+  
+  const selectedRange = TIME_RANGES.find(range => range.value === timeRange)
 
   if (isLoading) {
     return (
@@ -101,31 +122,85 @@ export function MetricsOverview() {
   );
 
   return (
-    <div className="grid gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
-      <MetricCard
-        title="Failure Rate"
-        value={`${(metrics.failure_rate ?? 0).toFixed(2)}%`}
-        description="24-hour trend"
-        icon={AlertTriangle}
-        color="destructive"
-      >
-        {metrics.failure_rate_trend && metrics.failure_rate_trend.length > 0 ? (
+    <div className="space-y-4">
+      {/* Time Range Selector */}
+      <div className="flex items-center gap-2">
+        <Clock className="h-4 w-4 text-muted-foreground" />
+        <Select value={timeRange} onValueChange={setTimeRange}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Select time range" />
+          </SelectTrigger>
+          <SelectContent>
+            {TIME_RANGES.map((range) => (
+              <SelectItem key={range.value} value={range.value}>
+                <div className="flex flex-col">
+                  <span>{range.label}</span>
+                  <span className="text-xs text-muted-foreground">{range.description}</span>
+                </div>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div className="grid gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <MetricCard
+          title="Success Rate"
+          value={`${(metrics.success_rate ?? 0).toFixed(2)}%`}
+          description={selectedRange?.label || "24-hour trend"}
+          icon={CheckCircle}
+          color="success"
+        >
+        {(() => {
+          const hasData = metrics.success_rate_trend && metrics.success_rate_trend.length > 0;
+          const dataQuality = (metrics as any).data_quality;
+          const coveragePercent = dataQuality?.data_coverage_percent || 0;
+          const hasValidData = hasData && coveragePercent > 0;
+          
+          if (!hasValidData) {
+            return (
+              <div className="flex h-full items-center justify-center">
+                <p className="text-xs text-muted-foreground text-center">
+                  No data in this time range<br/>
+                  <span className="text-xs opacity-75">Run some tests to see trends</span>
+                </p>
+              </div>
+            );
+          }
+          
+          if (coveragePercent < 20) {
+            return (
+              <div className="flex h-full items-center justify-center">
+                <p className="text-xs text-muted-foreground text-center">
+                  Limited data ({Math.round(coveragePercent)}% coverage)<br/>
+                  <span className="text-xs opacity-75">Try a longer time range</span>
+                </p>
+              </div>
+            );
+          }
+          
+          return (
             <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={metrics.failure_rate_trend}>
-                    <defs>
-                        <linearGradient id="colorRate" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.4}/>
-                            <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
-                        </linearGradient>
-                    </defs>
-                    <Area type="monotone" dataKey="rate" stroke="#ef4444" fillOpacity={1} fill="url(#colorRate)" />
-                </AreaChart>
+              <AreaChart data={metrics.success_rate_trend}>
+                <defs>
+                  <linearGradient id="colorRate" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#22c55e" stopOpacity={0.4}/>
+                    <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <Area 
+                  type="monotone" 
+                  dataKey="rate" 
+                  stroke="#22c55e" 
+                  fillOpacity={1} 
+                  fill="url(#colorRate)"
+                  connectNulls={false}
+                  dot={false}
+                />
+              </AreaChart>
             </ResponsiveContainer>
-        ) : (
-            <div className="flex h-full items-center justify-center">
-                <p className="text-xs text-muted-foreground">No trend data available</p>
-            </div>
-        )}
+          );
+        })()}
       </MetricCard>
       <MetricCard
         title="Total Test Runs"
@@ -140,6 +215,7 @@ export function MetricsOverview() {
         icon={Zap}
         color="primary"
       />
+      </div>
     </div>
   )
 }
