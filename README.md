@@ -1,505 +1,637 @@
-# FailProof LLM Testing Platform
-*Enterprise-Grade AI Model Stress Testing & Compliance Platform*
+# DragonFruit: LLM Stress Testing & Robustness Evaluation Platform
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![Node.js 18+](https://img.shields.io/badge/node.js-18+-green.svg)](https://nodejs.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-red.svg)](https://fastapi.tiangolo.com/)
-[![Next.js](https://img.shields.io/badge/Next.js-14+-black.svg)](https://nextjs.org/)
+<div align="center">
 
-## 🚀 Quick Start (Local Development)
+![DragonFruit Logo](https://img.shields.io/badge/DragonFruit-LLM%20Testing-blue?style=for-the-badge&logo=shield-check)
 
-**Prerequisites:** Node.js 18+, Python 3.10+, API keys for desired providers
+**AI Safety & Reliability Testing Framework**
 
-```bash
-# 1. Clone and setup backend
-cd backend
-python -m venv venv
-source venv/bin/activate  # or .\venv\Scripts\activate on Windows
-pip install -r requirements.txt
+[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://python.org)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.111.0-green.svg)](https://fastapi.tiangolo.com)
+[![Next.js](https://img.shields.io/badge/Next.js-15.4.6-black.svg)](https://nextjs.org)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue.svg)](https://typescriptlang.org)
+[![SQLite](https://img.shields.io/badge/SQLite-3+-blue.svg)](https://sqlite.org)
 
-# 2. Configure backend API keys
-echo 'OPENAI_API_KEY="your-key-here"' > .env
-
-# 3. Start backend
-uvicorn main:app --reload  # Runs on http://localhost:8000
-
-# 4. Setup and start frontend with integrated AI Bridge (new terminal)
-cd ../frontend
-npm install
-# Create .env.local and add your AI provider API keys:
-# OPENAI_API_KEY=your_key_here
-# ANTHROPIC_API_KEY=your_key_here
-# GOOGLE_GENERATIVE_AI_API_KEY=your_key_here
-npm run dev  # Runs on http://localhost:3000
-```
-
-**Access:** Navigate to `http://localhost:3000` to begin testing.
+</div>
 
 ---
 
-## 📋 Table of Contents
+## Executive Summary
 
-- [Overview](#overview)
-- [Key Features](#key-features)
-- [Architecture](#architecture)
-- [Installation & Setup](#installation--setup)
-- [AI Model Integration](#ai-model-integration)
-- [Business Rules & Compliance](#business-rules--compliance)
-- [API Documentation](#api-documentation)
-- [Testing Methodologies](#testing-methodologies)
-- [Data Management](#data-management)
-- [Security & Privacy](#security--privacy)
-- [Contributing](#contributing)
-- [License](#license)
+**DragonFruit** is a comprehensive platform designed to systematically stress-test, analyze, and improve the robustness of Large Language Models (LLMs) and AI agents. Built for the **Hack Nation MIT hackathon**, this platform addresses the critical gap between LLM capabilities and reliability requirements through advanced adversarial testing, hallucination detection, and automated failure analysis.
+
+### Key Value Propositions
+
+- **Comprehensive Testing**: Framework for testing AI models with various input types
+- **Advanced AI Analysis**: LLM-as-a-Judge failure detection with business rule integration
+- **Quantitative Metrics**: Shannon entropy-based hallucination detection via custom ShED-HD models
+- **Continuous Improvement**: Automated hard case mining and test case evolution
+- **Multi-Model Support**: 200+ models via Vercel AI SDK + local GGUF model support
+- **Real-time Monitoring**: Live test execution tracking and comprehensive reporting
 
 ---
 
-## 🎯 Overview
+## System Architecture
 
-FailProof is a comprehensive AI model testing and compliance platform designed for enterprise environments. It provides systematic stress testing, failure analysis, and compliance monitoring for Large Language Models (LLMs) across multiple providers and use cases.
+DragonFruit is architected as a robust, scalable, and modular full-stack application with clear separation of concerns between frontend, backend, and AI core services.
 
-### Core Mission
-Ensure AI models are **reliable**, **safe**, **compliant**, and **performant** in production environments through rigorous testing methodologies and continuous monitoring.
+```mermaid
+graph TB
+    subgraph "Frontend"
+        A[Next.js 15 + TypeScript]
+        B[React Components]
+        C[Shadcn UI + Tailwind]
+        D[Recharts + Zustand]
+    end
+    
+    subgraph "Backend API"
+        E[FastAPI + Python]
+        F[SQLite + SQLAlchemy]
+        G[Async Operations]
+    end
+    
+    subgraph "AI Core"
+        H[LangChain Integration]
+        I[ShED-HD Models]
+        J[Vercel AI Bridge]
+        K[Local GGUF Models]
+    end
+    
+    subgraph "Data Sources"
+        L[BIG-bench Datasets]
+        M[Adversarial Mutators]
+        N[Evolved Test Cases]
+    end
+    
+    A --> B --> C
+    B --> D
+    E --> F
+    E --> G
+    H --> I
+    H --> J
+    H --> K
+    L --> E
+    M --> E
+    N --> E
+    E <--> A
+```
 
-### Target Users
-- **AI/ML Engineers** developing production AI systems
-- **Compliance Teams** ensuring regulatory adherence
-- **Product Teams** validating AI feature reliability
-- **Security Teams** assessing AI safety and robustness
-- **Enterprise Organizations** deploying AI at scale
+### Frontend Architecture
+
+The frontend is a modern, responsive single-page application built with cutting-edge technologies:
+
+- **Framework**: Next.js 15 with Turbopack for high-performance server-side rendering
+- **UI/UX**: Professional component library using Shadcn UI, Radix UI primitives, and Tailwind CSS
+- **State Management**: Zustand for lightweight global state and TanStack Query for server state
+- **Data Visualization**: Interactive charts and metrics using Recharts
+- **Type Safety**: Full TypeScript implementation with strict type checking
+
+### Backend Architecture
+
+The backend is a high-performance RESTful API:
+
+- **Framework**: FastAPI with automatic OpenAPI documentation and dependency injection
+- **Database**: SQLite with SQLAlchemy ORM for robust, relational data storage
+- **Performance**: Asynchronous operations using Python's `asyncio` for non-blocking I/O
+- **Scalability**: Modular service architecture with clear separation of concerns
+- **Security**: CORS middleware, input validation, and structured error handling
 
 ---
 
-## 🔥 Key Features
+## AI Core Components
 
-### 🤖 **Universal AI Model Support**
-- **200+ Models**: Complete integration with OpenAI, Anthropic, Google, xAI, Mistral, Groq, Cohere, Fireworks, Perplexity, and more
-- **Latest 2025 Models**: GPT-4.1, o3, Grok-4, Claude-4, Gemini-2.0, and reasoning models
-- **Unified API**: Single interface for all providers via Vercel AI SDK integration
-- **Dynamic Model Discovery**: Automatic detection of newly available models
+### 1. LangChain Integration
 
-### 📊 **Advanced Testing Methodologies**
-- **Stress Testing**: High-volume request simulation and load testing
-- **Adversarial Testing**: Hard case mining and edge case generation
-- **Failure Analysis**: Automated detection of hallucinations, inconsistencies, and errors
-- **Business Rules Compliance**: LLM-as-a-Judge policy violation detection
-- **Performance Benchmarking**: Latency, throughput, and quality metrics
+DragonFruit leverages LangChain as the foundation for advanced AI functionality:
 
-### 🛡️ **Enterprise Compliance & Security**
-- **Business Rules Engine**: Configurable policy enforcement and violation detection
-- **Audit Trails**: Comprehensive logging and traceability for regulatory compliance
-- **Data Privacy**: Secure handling of sensitive test data and results
-- **Role-Based Access**: Granular permissions and access control
-- **Compliance Reporting**: Automated generation of compliance documentation
-
-### 🔬 **Intelligent Analysis & Insights**
-- **Automated Failure Classification**: Machine learning-powered failure categorization
-- **Pattern Recognition**: Identification of systematic model weaknesses
-- **Comparative Analysis**: Multi-model performance comparison and benchmarking
-- **Predictive Analytics**: Proactive identification of potential failure modes
-- **Custom Metrics**: Configurable KPIs and success criteria
-
-### 🎯 **Production-Ready Architecture**
-- **Scalable Infrastructure**: Microservices architecture supporting enterprise workloads
-- **Real-time Monitoring**: Live dashboards and alerting systems
-- **API-First Design**: RESTful APIs for seamless integration
-- **Database Management**: Robust data persistence and querying capabilities
-- **Export & Integration**: Multiple export formats and third-party integrations
-
----
-
-## 🏗️ Architecture
-
-FailProof employs a modern, scalable microservices architecture:
-
-```
-┌─────────────────────────────────────────────┐    ┌─────────────────┐
-│   Frontend + AI Bridge (Next.js)           │    │   Backend       │
-│   ┌─────────────────┐  ┌─────────────────┐ │    │   (FastAPI)     │
-│   │   UI/Dashboard  │  │   API Routes    │ │◄──►│   Port: 8000    │
-│   │   (React)       │  │   /api/ai-bridge│ │    │                 │
-│   │   Port: 3000    │  │   (200+ Models) │ │    │                 │
-│   └─────────────────┘  └─────────────────┘ │    │                 │
-└─────────────────────────────────────────────┘    └─────────────────┘
-                    │                                       │
-                    │              ┌─────────────────┐      │
-                    └─────────────►│   Database      │◄─────┘
-                                   │   (SQLite)      │
-                                   └─────────────────┘
-```
-
-### Component Overview
-
-- **Frontend + AI Bridge (Next.js)**: Integrated React dashboard with built-in AI Bridge using Next.js API routes
-  - UI/Dashboard for test management and visualization  
-  - API Routes (`/api/ai-bridge/*`) providing unified access to 200+ AI models
-- **Backend (FastAPI)**: Core testing engine with business logic and data management
-- **Database (SQLite)**: Persistent storage for test configurations, results, and analytics
-
----
-
-## 🛠️ Installation & Setup
-
-### System Requirements
-
-- **Operating System**: macOS, Linux, or Windows 10/11
-- **Node.js**: Version 18.0 or higher
-- **Python**: Version 3.10 or higher
-- **Memory**: Minimum 8GB RAM (16GB recommended for large-scale testing)
-- **Storage**: 10GB available disk space
-- **Network**: Internet connection for AI provider APIs
-
-### Detailed Installation Steps
-
-#### 1. Repository Setup
-```bash
-git clone https://github.com/your-org/failproof-llm.git
-cd failproof-llm
-```
-
-#### 2. Backend Configuration
-```bash
-cd backend
-
-# Create and activate virtual environment
-python -m venv venv
-source venv/bin/activate  # Linux/macOS
-# or
-.\venv\Scripts\activate  # Windows
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Configure environment variables
-cp .env.example .env
-# Edit .env with your API keys and configuration
-```
-
-#### 3. Frontend Setup (includes AI Bridge)
-```bash
-cd ../frontend
-
-# Install Node.js dependencies
-npm install
-
-# Configure environment for AI providers
-# Create .env.local and add your API keys:
-# OPENAI_API_KEY=your_openai_key
-# ANTHROPIC_API_KEY=your_anthropic_key
-# GOOGLE_GENERATIVE_AI_API_KEY=your_google_key
-# XAI_API_KEY=your_xai_key
-# MISTRAL_API_KEY=your_mistral_key
-# GROQ_API_KEY=your_groq_key
-# COHERE_API_KEY=your_cohere_key
-# FIREWORKS_API_KEY=your_fireworks_key
-# PERPLEXITY_API_KEY=your_perplexity_key
-```
-
-#### 4. Database Initialization
-```bash
-cd ../backend
-
-# Initialize database schema
-python -c "from db.database import init_db; init_db()"
-```
-
-### Starting the Platform
-
-#### Development Mode
-```bash
-# Terminal 1: Backend
-cd backend
-source venv/bin/activate
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-
-# Terminal 2: Frontend (includes AI Bridge)
-cd frontend
-npm run dev
-```
-
-#### Production Mode
-```bash
-# Backend
-cd backend
-uvicorn main:app --host 0.0.0.0 --port 8000
-
-# Frontend (includes AI Bridge)
-cd frontend
-npm run build
-npm start
-```
-
----
-
-## 🤖 AI Model Integration
-
-### Supported Providers & Models
-
-FailProof integrates with the complete Vercel AI SDK ecosystem, providing access to 200+ models:
-
-#### **OpenAI (40+ models)**
-- **Latest 2025**: `gpt-4.1`, `gpt-4.1-mini`, `gpt-4.1-nano`
-- **Reasoning Models**: `o3`, `o3-mini`, `o4-mini`, `o1`, `o1-preview`, `o1-mini`
-- **GPT-4o Series**: `gpt-4o`, `gpt-4o-mini`, `chatgpt-4o-latest`
-- **GPT-4 Series**: `gpt-4-turbo`, `gpt-4`, `gpt-4-32k`
-- **GPT-3.5 Series**: `gpt-3.5-turbo`, `gpt-3.5-turbo-instruct`
-
-#### **Anthropic (15+ models)**
-- **Claude 4 (2025)**: `claude-opus-4-latest`, `claude-sonnet-4-latest`
-- **Claude 3.7**: `claude-3-7-sonnet-latest`
-- **Claude 3.5**: `claude-3-5-sonnet-latest`, `claude-3-5-haiku-latest`
-- **Claude 3**: `claude-3-opus-20240229`, `claude-3-sonnet-20240229`
-
-#### **Google (20+ models)**
-- **Gemini 2.0**: `gemini-2.0-flash-exp`, `gemini-2.0-flash-thinking-exp`
-- **Gemini 1.5**: `gemini-1.5-pro`, `gemini-1.5-flash`, `gemini-1.5-flash-8b`
-- **Gemini 1.0**: `gemini-1.0-pro`, `gemini-1.0-pro-vision-latest`
-
-#### **xAI Grok (10+ models)**
-- **Grok 4 (2025)**: `grok-4`, `grok-3`, `grok-3-fast`
-- **Grok Mini**: `grok-3-mini`, `grok-3-mini-fast`
-- **Grok 2**: `grok-2-1212`, `grok-2-vision-1212`
-
-#### **Additional Providers**
-- **Mistral**: 15+ models including Pixtral and Mixtral variants
-- **Groq**: 20+ ultra-fast inference models
-- **Cohere**: 10+ Command-R models
-- **Fireworks**: 20+ open-source model variants
-- **Perplexity**: 6+ Sonar models with web search
-- **DeepSeek**: 5+ reasoning and coding models
-- **Cerebras**: 3+ ultra-fast Llama models
-
-### Model Selection Interface
-
-The platform provides an intuitive model selection interface with:
-- **Provider Filtering**: Filter models by provider
-- **Real-time Search**: Find models by name or capability
-- **Detailed Information**: Pricing, context length, and feature support
-- **Performance Indicators**: Speed, quality, and cost metrics
-
----
-
-## 🛡️ Business Rules & Compliance
-
-### LLM-as-a-Judge System
-
-FailProof includes a sophisticated business rules engine that uses advanced LLMs to automatically detect policy violations, safety issues, and compliance failures.
-
-#### Key Features
-- **Automated Policy Enforcement**: Real-time detection of rule violations
-- **Custom Rule Definition**: Configurable business rules and compliance policies
-- **Multi-Model Validation**: Cross-validation using multiple LLM judges
-- **Detailed Violation Reports**: Comprehensive analysis of policy breaches
-- **Audit Trail**: Complete logging for regulatory compliance
-
-#### Supported Compliance Areas
-- **Data Privacy**: PII detection and handling violations
-- **Content Safety**: Harmful content identification
-- **Regulatory Compliance**: Industry-specific rule enforcement
-- **Brand Guidelines**: Consistency with organizational policies
-- **Ethical AI**: Bias detection and fairness assessment
-
-#### Configuration
 ```python
-# Example business rule configuration
-business_rules = {
-    "data_privacy": {
-        "detect_pii": True,
-        "allowed_data_types": ["public", "anonymous"],
-        "violation_threshold": 0.8
-    },
-    "content_safety": {
-        "harmful_content_detection": True,
-        "toxicity_threshold": 0.3,
-        "bias_detection": True
-    },
-    "brand_compliance": {
-        "tone_consistency": True,
-        "terminology_enforcement": True,
-        "guideline_adherence": True
-    }
+# LLM-as-a-Judge Implementation
+def detect_failures_with_llm(prompt: str, response: str, judge_model: str = "gpt-4o"):
+    """
+    Uses a powerful LLM (the "judge") to analyze responses for various failure modes:
+    - REFUSAL: Model refuses reasonable requests
+    - INCORRECT_OUTPUT: Factually incorrect or logically flawed responses
+    - POLICY_VIOLATION: Safety policy or business rule violations
+    - CRASH: Empty, incomplete, or system error responses
+    """
+```
+
+**Key Features:**
+- **Structured Output Parsing**: Ensures consistent JSON responses for automated analysis
+- **Business Rule Integration**: Dynamic prompting with context-aware compliance checking
+- **Multi-Failure Classification**: Comprehensive categorization of model weaknesses
+
+### 2. ShED-HD (Shannon Entropy-based Hallucination Detection)
+
+Custom-trained PyTorch models that analyze token generation entropy to detect hallucinations:
+
+```python
+class EntropyClassifier(nn.Module):
+    """BiLSTM + Attention classifier for entropy sequences"""
+    
+    def __init__(self, input_dim, hidden_dims, dropout_rate=0.4):
+        # Input embedding and normalization
+        self.input_embedding = nn.Sequential(
+            nn.Linear(1, 64),
+            nn.LayerNorm(64),
+            nn.GELU(),
+            nn.Dropout(dropout_rate)
+        )
+        
+        # Bidirectional LSTM with attention mechanism
+        self.lstm = nn.LSTM(input_size=64, hidden_size=128, num_layers=2, bidirectional=True)
+        self.attention = nn.Sequential(
+            nn.Linear(256, 64), nn.Tanh(), nn.Dropout(dropout_rate), nn.Linear(64, 1)
+        )
+```
+
+**Technical Specifications:**
+- **Architecture**: BiLSTM + Attention mechanism for sequence modeling
+- **Input**: Shannon entropy values from token generation log probabilities
+- **Output**: Binary classification (hallucination vs. non-hallucination)
+- **Training**: Custom dataset with entropy sequences from various LLM responses
+
+### 3. Vercel AI Bridge Integration
+
+Seamless access to 200+ AI models through the Vercel AI SDK:
+
+```python
+class VercelAIBridge:
+    """Unified interface to 200+ AI models through Vercel AI SDK"""
+    
+    def get_available_models(self) -> List[Dict[str, Any]]:
+        """Get all available models with caching and compatibility mapping"""
+        
+    def generate_text(self, model_name: str, prompt: str, **kwargs) -> Dict[str, Any]:
+        """Generate text using specified model with unified interface"""
+```
+
+**Supported Providers:**
+- OpenAI (GPT-4, GPT-3.5, etc.)
+- Anthropic (Claude models)
+- Google (Gemini models)
+- Mistral AI
+- Cohere
+- Groq
+- Perplexity
+- And 190+ more...
+
+### 4. Local Model Support
+
+Offline testing capabilities using GGUF-formatted models:
+
+```python
+def generate_response_with_entropy(
+    llama_model: Llama,
+    question: str,
+    max_tokens: int = 256,
+    temperature: float = 0.7
+) -> Optional[dict]:
+    """Generate responses with real-time entropy calculation and ShED-HD analysis"""
+```
+
+**Features:**
+- **GGUF Format Support**: Compatible with most open-source models
+- **Real-time Entropy**: Live calculation during token generation
+- **Offline Operation**: No internet dependency for local testing
+- **Performance Optimization**: CUDA acceleration when available
+
+---
+
+## Testing Framework
+
+### 1. Comprehensive Test Orchestration
+
+DragonFruit provides a unified testing framework that combines multiple data sources:
+
+```python
+def run_stress_test(run_id: int):
+    """Execute comprehensive stress testing with multiple input sources"""
+    
+    # Adversarial mutators
+    for mutator in mutators:
+        prompts = input_generator.get_adversarial_inputs([mutator])
+        all_prompts.extend([("mutator", mutator, p) for p in prompts])
+    
+    # BIG-bench datasets
+    for dataset_name in datasets:
+        prompts = dataset_service.get_prompts_from_dataset(dataset_name)
+        all_prompts.extend([("dataset", dataset_name, p) for p in prompts])
+    
+    # Evolved hard cases
+    if use_evolved_cases:
+        evolved_cases = db.query(schemas.EvolvedTestCase).all()
+        prompts = [case.evolved_prompt for case in evolved_cases]
+        all_prompts.extend([("evolved", "Evolved Hard Cases", p) for p in prompts])
+```
+
+### 2. Adversarial Input Generation
+
+Seven specialized mutators for generating challenging test cases:
+
+```python
+GENERATORS = {
+    "malformed_json": generate_malformed_json,      # Broken JSON structures
+    "malformed_csv": generate_malformed_csv,        # Mismatched CSV columns
+    "malformed_html": generate_malformed_html,      # Unclosed HTML tags
+    "weird_unicode": generate_weird_unicode,        # Homoglyph attacks, RTL overrides
+    "mixed_languages": generate_mixed_languages,    # Multi-language prompts
+    "contradictory_instructions": generate_contradictory_instructions,  # Conflicting directives
+    "base64_blobs": generate_base64_blobs,         # Encoded payloads
 }
 ```
 
+**Example Adversarial Inputs:**
+- **Malformed JSON**: `{"user_id": 123, "status": "act\nive"}` (unescaped newlines)
+- **Unicode Attacks**: `UsserName` (homoglyph substitution)
+- **Contradictory Instructions**: "Summarize in one sentence. Also provide a detailed five-paragraph essay."
+
+### 3. BIG-bench Dataset Integration
+
+Integration with [BIG-bench](https://github.com/google/BIG-bench), Google's collaborative benchmark for measuring and extrapolating language model capabilities. BIG-bench contains more than 200 tasks designed to probe large language models and test their future capabilities.
+
+**Selected BIG-bench Datasets:**
+- **Causal Judgment**: Complex reasoning about cause-and-effect relationships
+- **Epistemic Reasoning**: Knowledge and belief validation
+- **Formal Fallacies**: Logical reasoning and syllogism testing
+- **Moral Permissibility**: Ethical decision-making scenarios
+- **Language Identification**: Multi-language comprehension
+- **Date Understanding**: Temporal reasoning capabilities
+- **Sports Understanding**: Domain-specific knowledge testing
+
+### 4. Automated Hard Case Mining
+
+AI-powered test case evolution for continuous improvement:
+
+```python
+def mine_and_evolve_hard_cases(run_id: int, db: Session, mutator_model: str = "gpt-4o"):
+    """Analyze failed test cases and evolve them into more challenging prompts"""
+    
+    failed_cases = db.query(schemas.TestCase).filter(
+        schemas.TestCase.test_run_id == run_id,
+        schemas.TestCase.is_failure == True
+    ).all()
+    
+    # Use LLM to generate evolved, more challenging prompts
+    for case in failed_cases:
+        evolved = llm.invoke(f"Evolve this failed case: {case.prompt}")
+        new_case = schemas.EvolvedTestCase(
+            original_test_case_id=case.id,
+            evolved_prompt=evolved.new_prompt
+        )
+```
+
 ---
 
-## 📊 API Documentation
+## Data Models & Schema
+
+### Core Entities
+
+```python
+class TestRun(Base):
+    """Complete test execution session"""
+    id: int
+    model_name: str
+    status: TestRunStatus  # PENDING, RUNNING, COMPLETED, FAILED, CANCELLED
+    detect_hallucinations: bool
+    detect_failures_llm: bool
+    mutators: List[str]  # Adversarial input types
+    datasets: List[str]  # BIG-bench datasets
+    use_evolved_cases: bool
+    total_cases: int
+    completed_cases: int
+
+class TestCase(Base):
+    """Individual test case execution"""
+    id: int
+    test_run_id: int
+    source_type: str  # 'mutator', 'dataset', 'evolved'
+    category: str     # Specific category (e.g., 'malformed_json')
+    prompt: str
+    response: str
+    latency_ms: float
+    is_failure: bool
+
+class FailureLog(Base):
+    """Detailed failure analysis"""
+    id: int
+    test_case_id: int
+    failure_type: FailureType  # HALLUCINATION, SCHEMA, POLICY, REFUSAL, CRASH
+    log_message: str
+
+class BusinessRule(Base):
+    """Enterprise compliance and safety rules"""
+    id: int
+    name: str
+    description: str
+    rule_type: str  # 'safety', 'business', 'compliance'
+    constraint_text: str
+    severity: str  # 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'
+```
+
+---
+
+## User Interface
+
+### Dashboard Overview
+
+The main dashboard provides insights into testing operations:
+
+- **Metrics Overview**: Statistics on test runs and model performance
+- **Workflow Diagram**: Visual representation of the testing pipeline
+- **Recent Activity**: Latest test executions and results
+
+### Test Run Management
+
+Test execution interface:
+
+- **Configuration**: Select models, mutators, datasets, and analysis options
+- **Monitoring**: Track test run progress and status
+- **Management**: View, delete, and monitor test run status
+
+### Business Rules Engine
+
+Basic business rule management:
+
+- **Rule Definition**: Create and manage safety, business, and compliance constraints
+- **Severity Classification**: Prioritize rules by impact level (LOW to CRITICAL)
+- **Rule Types**: Support for safety, privacy, compliance, quality, and business rules
+- **Model Association**: Link rules to specific models or apply to all models
+
+### Hallucination Detection Interface
+
+Simple testing interface:
+
+- **Live Chat**: Basic conversation interface with models for testing
+- **Model Selection**: Choose from available models for testing
+- **Response Analysis**: View model responses for manual evaluation
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- **Python**: 3.10 or higher
+- **Node.js**: 18.0 or higher
+- **SQLite**: 3 or higher (included with Python)
+- **CUDA**: Optional, for GPU acceleration of ShED-HD models
+
+### Backend Setup
+
+1. **Navigate to backend directory:**
+   ```bash
+   cd backend
+   ```
+
+2. **Create and activate virtual environment:**
+   ```bash
+   python3 -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+3. **Install dependencies:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. **Configure environment variables:**
+   ```bash
+   # Create .env file
+   DATABASE_URL="sqlite:///./test.db"  # Default SQLite database
+   OPENAI_API_KEY="your-openai-api-key"
+   LLAMA_MODEL_PATH="/path/to/your/gguf/model.gguf"
+   SHEDHD_MODEL_PATH="/path/to/your/shedhd_model.pth"
+   ```
+
+5. **Start the backend server:**
+   ```bash
+   uvicorn main:app --reload --host 0.0.0.0 --port 8000
+   ```
+
+### Frontend Setup
+
+1. **Navigate to frontend directory:**
+   ```bash
+   cd frontend
+   ```
+
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
+
+3. **Configure environment variables:**
+   ```bash
+   # Create .env.local file
+   NEXT_PUBLIC_API_URL="http://localhost:8000/api/v1"
+   ```
+
+4. **Start the development server:**
+   ```bash
+   npm run dev
+   ```
+
+### Database Setup
+
+**SQLite database is automatically created** on first run via SQLAlchemy's `create_tables()` function. The database file will be created in the backend directory as `test.db`.
+
+---
+
+## Configuration & Customization
+
+### Model Configuration
+
+Configure different model providers and parameters:
+
+```python
+# Vercel AI SDK Models
+vercel_models = {
+    "gpt-4o": {"provider": "openai", "context_length": 128000},
+    "claude-3-opus": {"provider": "anthropic", "context_length": 200000},
+    "gemini-1.5-pro": {"provider": "google", "context_length": 1000000}
+}
+
+# Local GGUF Models
+local_models = {
+    "llama-3.1-8b": {"path": "/models/llama-3.1-8b.gguf", "context_length": 8192},
+    "mistral-7b": {"path": "/models/mistral-7b.gguf", "context_length": 8192}
+}
+```
+
+### Business Rules Configuration
+
+Define enterprise-specific compliance requirements:
+
+```python
+business_rules = [
+    {
+        "name": "HIPAA Compliance",
+        "description": "Ensure no PHI is exposed in responses",
+        "rule_type": "compliance",
+        "constraint_text": "Never reveal patient names, medical record numbers, or diagnosis details",
+        "severity": "CRITICAL"
+    },
+    {
+        "name": "Financial Data Protection",
+        "description": "Protect sensitive financial information",
+        "rule_type": "business",
+        "constraint_text": "Do not disclose account numbers, balances, or transaction details",
+        "severity": "HIGH"
+    }
+]
+```
+
+### Custom Mutators
+
+Extend the adversarial testing framework:
+
+```python
+def generate_custom_attacks():
+    """Custom adversarial input generator"""
+    return [
+        "Execute this SQL injection: ' OR 1=1--",
+        "Perform this XSS attack: <script>alert('xss')</script>",
+        "Bypass this filter: admin'--"
+    ]
+
+# Register custom mutator
+GENERATORS["custom_attacks"] = generate_custom_attacks
+```
+
+---
+
+## Performance & Scalability
+
+### Backend Performance
+
+- **Async Operations**: Non-blocking I/O for concurrent test execution
+- **Database**: SQLite database with SQLAlchemy ORM
+
+### Frontend Performance
+
+- **Next.js 15**: Latest framework with Turbopack for fast builds
+- **TypeScript**: Compile-time error checking for better performance
+
+### Scalability Considerations
+
+- **Modular Architecture**: Service-based design for maintainability
+- **Database**: SQLite for development and testing
+
+---
+
+## Security & Compliance
+
+### Data Protection
+
+- **Input Validation**: Basic input sanitization
+- **SQL Injection Prevention**: Parameterized queries via SQLAlchemy
+- **CORS Configuration**: Proper cross-origin resource sharing setup
+
+---
+
+## Testing & Quality Assurance
+
+### Automated Testing
+
+```bash
+# Run backend tests
+cd backend
+python -m pytest tests/
+
+# Run frontend tests
+cd frontend
+npm test
+
+# Run end-to-end tests
+npm run test:e2e
+```
+
+### Code Quality
+
+- **Type Checking**: Full TypeScript implementation with strict mode
+- **Linting**: ESLint configuration for code quality standards
+- **Formatting**: Prettier integration for consistent code style
+- **Documentation**: Comprehensive docstrings and API documentation
+
+---
+
+## API Documentation
 
 ### Core Endpoints
 
-#### Test Management
-```http
-POST /api/v1/test-runs
-GET /api/v1/test-runs
-GET /api/v1/test-runs/{run_id}
-DELETE /api/v1/test-runs/{run_id}
-```
+- **`GET /api/v1/test-runs`**: List all test runs
+- **`POST /api/v1/test-runs`**: Create new test run
+- **`GET /api/v1/test-runs/{id}`**: Get test run details
+- **`DELETE /api/v1/test-runs/{id}`**: Delete test run
+- **`GET /api/v1/insights`**: Get analytics and insights
+- **`GET /api/v1/hallucinations`**: Hallucination detection results
+- **`GET /api/v1/business-rules`**: Manage business rules
+- **`GET /api/v1/models`**: Available model information
 
-#### Model Integration
-```http
-GET /api/v1/models/available
-POST /api/v1/models/generate
-POST /api/v1/models/batch
-```
+### Interactive Documentation
 
-#### Business Rules
-```http
-GET /api/v1/business-rules
-POST /api/v1/business-rules
-PUT /api/v1/business-rules/{rule_id}
-DELETE /api/v1/business-rules/{rule_id}
-```
-
-#### Analytics & Insights
-```http
-GET /api/v1/insights/performance
-GET /api/v1/insights/failures
-GET /api/v1/insights/compliance
-```
-
-### Authentication
-
-FailProof supports multiple authentication methods:
-- **API Keys**: For programmatic access
-- **OAuth 2.0**: For enterprise SSO integration
-- **JWT Tokens**: For session management
-
-### Rate Limiting
-
-API endpoints are protected with intelligent rate limiting:
-- **Standard**: 1000 requests/hour
-- **Premium**: 10,000 requests/hour
-- **Enterprise**: Custom limits
+Access the complete API documentation at `http://localhost:8000/docs` when running the backend server.
 
 ---
 
-## 🔬 Testing Methodologies
-
-### Stress Testing
-- **Load Simulation**: High-volume request patterns
-- **Concurrency Testing**: Parallel request handling
-- **Resource Monitoring**: Memory and CPU utilization
-- **Latency Analysis**: Response time distribution
-
-### Adversarial Testing
-- **Hard Case Mining**: Automatic discovery of challenging inputs
-- **Edge Case Generation**: Systematic boundary testing
-- **Robustness Evaluation**: Model stability under perturbations
-- **Failure Mode Analysis**: Systematic weakness identification
-
-### Quality Assurance
-- **Hallucination Detection**: Factual accuracy verification
-- **Consistency Testing**: Response reliability across runs
-- **Bias Assessment**: Fairness and equity evaluation
-- **Performance Benchmarking**: Comparative model analysis
-
-### Custom Test Suites
-- **Domain-Specific Testing**: Industry-tailored test cases
-- **Regression Testing**: Model version comparison
-- **A/B Testing**: Controlled model comparison
-- **Continuous Testing**: Automated ongoing validation
-
----
-
-## 💾 Data Management
-
-### Data Storage
-- **Test Configurations**: Structured test parameters and settings
-- **Execution Results**: Detailed test outcomes and metrics
-- **Model Responses**: Complete interaction logs
-- **Analytics Data**: Aggregated insights and trends
-
-### Data Export
-- **CSV Format**: Tabular data for analysis tools
-- **JSON Format**: Structured data for integrations
-- **PDF Reports**: Executive summaries and documentation
-- **API Access**: Programmatic data retrieval
-
-### Data Privacy
-- **Encryption**: Data encrypted at rest and in transit
-- **Access Control**: Role-based data access permissions
-- **Anonymization**: PII removal and data sanitization
-- **Retention Policies**: Configurable data lifecycle management
-
----
-
-## 🔒 Security & Privacy
-
-### Security Measures
-- **API Key Management**: Secure credential storage and rotation
-- **Input Validation**: Comprehensive request sanitization
-- **Rate Limiting**: DDoS protection and abuse prevention
-- **Audit Logging**: Complete activity tracking
-
-### Privacy Protection
-- **Data Minimization**: Collection of only necessary data
-- **Consent Management**: User control over data usage
-- **Right to Deletion**: GDPR-compliant data removal
-- **Cross-Border Compliance**: International privacy law adherence
-
-### Compliance Standards
-- **SOC 2 Type II**: Security and availability controls
-- **GDPR**: European data protection compliance
-- **CCPA**: California privacy rights compliance
-- **HIPAA**: Healthcare data protection (where applicable)
-
----
-
-## 🤝 Contributing
+## Contributing
 
 ### Development Workflow
-1. **Fork** the repository
-2. **Create** a feature branch (`git checkout -b feature/amazing-feature`)
-3. **Commit** your changes (`git commit -m 'Add amazing feature'`)
-4. **Push** to the branch (`git push origin feature/amazing-feature`)
-5. **Open** a Pull Request
+
+1. **Fork the repository**
+2. **Create a feature branch**: `git checkout -b feature/amazing-feature`
+3. **Make your changes** with proper testing
+4. **Commit your changes**: `git commit -m 'Add amazing feature'`
+5. **Push to the branch**: `git push origin feature/amazing-feature`
+6. **Open a Pull Request**
 
 ### Code Standards
+
 - **Python**: Follow PEP 8 style guidelines
-- **TypeScript**: Use ESLint and Prettier configurations
-- **Testing**: Maintain >90% code coverage
-- **Documentation**: Update relevant documentation
-
-### Bug Reports
-Use the [GitHub Issues](https://github.com/your-org/failproof-llm/issues) template to report bugs with:
-- Detailed reproduction steps
-- Expected vs. actual behavior
-- Environment information
-- Screenshots (if applicable)
+- **TypeScript**: Use strict mode and proper typing
+- **Documentation**: Maintain comprehensive docstrings
+- **Testing**: Ensure adequate test coverage
 
 ---
 
-## 📄 License
+## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+This project was developed for the **Hack Nation MIT hackathon** and is not yet licensed.
 
 ---
 
-## 🆘 Support
+## Team
 
-### Documentation
-- **Full Documentation**: [docs.failproof.ai](https://docs.failproof.ai)
-- **API Reference**: [api.failproof.ai](https://api.failproof.ai)
-- **Tutorials**: [tutorials.failproof.ai](https://tutorials.failproof.ai)
+- **Daniel Lee** - Full-Stack Development & AI Integration
+- **Aneesh Vathul** - Backend Architecture & ML Models
 
-### Community
-- **Discord**: [Join our community](https://discord.gg/failproof)
-- **GitHub Discussions**: [Ask questions](https://github.com/your-org/failproof-llm/discussions)
-- **Twitter**: [@FailProofAI](https://twitter.com/FailProofAI)
+---
 
-### Enterprise Support
-For enterprise support, custom integrations, and professional services:
-- **Email**: enterprise@failproof.ai
-- **Website**: [failproof.ai/enterprise](https://failproof.ai/enterprise)
-- **Phone**: +1 (555) 123-4567
+## Acknowledgments
+
+- **[BIG-bench](https://github.com/google/BIG-bench)**: For providing comprehensive evaluation datasets with more than 200 tasks
+- **ShED-HD**: For entropy-based hallucination detection research
+- **Vercel AI SDK**: For seamless multi-model integration
+- **LangChain**: For advanced AI orchestration capabilities
+- **Hack Nation MIT**: For the opportunity to build this platform
+
+---
+
+## Support & Contact
+
+For questions, support, or collaboration opportunities:
+
+- **GitHub Issues**: Report bugs or request features
+- **Discussions**: Join community discussions
+- **Email**: [Your contact information]
 
 ---
 
 <div align="center">
 
-**Built with ❤️ for the AI community**
+**Built with ❤️ for the Hack Nation MIT hackathon**
 
-[Website](https://failproof.ai) • [Documentation](https://docs.failproof.ai) • [Community](https://discord.gg/failproof) • [Support](mailto:support@failproof.ai)
+*Empowering developers to test AI with confidence*
 
 </div>

@@ -291,7 +291,11 @@ def main():
         sys.exit(1)
 
     question = sys.argv[1]
-    model_path = "/Users/aneeshvathul/local_models/Llama-3.2-1B-Instruct-Q8_0.gguf"
+    model_path = os.getenv("LLAMA_MODEL_PATH")
+    
+    if not model_path:
+        print("Error: LLAMA_MODEL_PATH environment variable not set")
+        sys.exit(1)
 
     if not os.path.exists(model_path):
         print(f"Error: Model file not found: {model_path}")

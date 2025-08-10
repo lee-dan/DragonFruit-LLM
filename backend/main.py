@@ -16,10 +16,11 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(
-    title="FailProof API",
-    description="API for LLM stress testing and failure detection.",
-    version="0.1.0",
-    lifespan=lifespan,
+    title="DragonFruit API",
+    description="LLM Stress Testing and Robustness Evaluation API",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc"
 )
 
 # Set up CORS
