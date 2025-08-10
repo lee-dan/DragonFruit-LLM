@@ -2,12 +2,20 @@ from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
 from typing import List
 
-from models.models import TestRunInDB, TestRunCreate, DashboardMetrics
+from models.models import TestRunInDB, TestRunCreate, DashboardMetrics, EvolvedTestCaseInDB, DeveloperInsight
 from db import schemas
 from db.database import get_db
-from services import test_runner_service
+from services import test_runner_service, failure_analysis_service, hard_case_mining_service
 
 router = APIRouter()
+
+
+@router.get("/dashboard-metrics/", response_model=DashboardMetrics)
+def get_dashboard_metrics_endpoint(db: Session = Depends(get_db)):
+    """
+    Returns the metrics for the dashboard.
+    """
+    return test_runner_service.get_dashboard_metrics(db)
 
 
 @router.post("/", response_model=TestRunInDB)
@@ -40,13 +48,6 @@ def read_test_runs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db
     return test_runs
 
 
-@router.get("/dashboard-metrics/", response_model=DashboardMetrics)
-def get_dashboard_metrics_endpoint(db: Session = Depends(get_db)):
-    """
-    Returns the metrics for the dashboard.
-    """
-    return test_runner_service.get_dashboard_metrics(db)
-
 @router.delete("/{run_id}", status_code=204)
 def delete_test_run(run_id: int, db: Session = Depends(get_db)):
     db_test_run = db.query(schemas.TestRun).filter(schemas.TestRun.id == run_id).first()
@@ -72,3 +73,19 @@ def cancel_test_run(run_id: int, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_test_run)
     return db_test_run
+
+@router.get("/{run_id}/evolved-cases", response_model=List[EvolvedTestCaseInDB])
+def get_evolved_cases_for_run(run_id: int, db: Session = Depends(get_db)):
+    """
+    Retrieves all evolved test cases generated from a specific test run.
+    """
+    failed_case_ids = db.query(schemas.TestCase.id).filter(
+        schemas.TestCase.test_run_id == run_id,
+        schemas.TestCase.is_failure == True
+    ).subquery()
+
+    evolved_cases = db.query(schemas.EvolvedTestCase).filter(
+        schemas.EvolvedTestCase.original_test_case_id.in_(failed_case_ids)
+    ).all()
+
+    return evolved_cases

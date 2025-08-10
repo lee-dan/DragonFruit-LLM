@@ -1,6 +1,5 @@
 import os
 import json
-from datasets import load_dataset
 from typing import List, Dict, Any
 
 BIGBENCH_BASE_PATH = "data/bigbench"
@@ -55,30 +54,15 @@ def get_prompts_from_bigbench_task(task_name: str, num_prompts: int = 100) -> Li
 
 def get_prompts_from_dataset(dataset_name: str, num_prompts: int = 10):
     """
-    Downloads a dataset from Hugging Face or BIG-bench and returns a list of prompts.
+    Loads prompts from a BIG-bench dataset file.
     """
     if dataset_name.startswith("bigbench:"):
         task_name = dataset_name.split(":")[1]
         return get_prompts_from_bigbench_task(task_name, num_prompts)
         
-    try:
-        # We might need to specify splits and column names for different datasets
-        dataset = load_dataset(dataset_name, split="train")
-        
-        # This assumes the dataset has a "text" or "inputs" column.
-        # This will need to be made more robust to handle different dataset structures.
-        prompt_column = "inputs" if "inputs" in dataset.column_names else "text"
-        
-        if prompt_column not in dataset.column_names:
-            print(f"Warning: Could not find a suitable prompt column in {dataset_name}.")
-            return []
-            
-        prompts = dataset.shuffle().select(range(num_prompts))[prompt_column]
-        return prompts
-        
-    except Exception as e:
-        print(f"Error loading dataset {dataset_name}: {e}")
-        return []
+    # For now, only support BIG-bench datasets
+    print(f"Dataset {dataset_name} not supported. Only BIG-bench datasets are currently supported.")
+    return []
 
 
 
