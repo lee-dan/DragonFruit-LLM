@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import ReactMarkdown from "react-markdown";
 import {
   getTestRun,
   getEvolvedCases,
@@ -442,9 +443,9 @@ export default function TestRunPage() {
                                       <h5 className="font-semibold text-sm text-muted-foreground mb-2">
                                         Original Test Case #{caseItem.original_test_case_id}:
                                       </h5>
-                                      <p className="text-sm bg-background p-2 rounded border">
+                                      <pre className="text-sm bg-background p-2 rounded border whitespace-pre-wrap font-sans">
                                         {originalTestCase.prompt}
-                                      </p>
+                                      </pre>
                                       <div className="flex items-center gap-2 mt-2 text-xs text-muted-foreground">
                                         <span>Status: {originalTestCase.is_failure ? "Failed" : "Passed"}</span>
                                         <span>•</span>
@@ -457,9 +458,9 @@ export default function TestRunPage() {
                                     <h4 className="font-semibold text-sm text-muted-foreground mb-1">
                                       Evolved Prompt:
                                     </h4>
-                                    <p className="text-sm bg-muted/50 p-3 rounded-md font-mono">
+                                    <pre className="text-sm bg-muted/50 p-3 rounded-md whitespace-pre-wrap font-sans">
                                       {caseItem.evolved_prompt}
-                                    </p>
+                                    </pre>
                                   </div>
                                   <div className="flex items-center gap-4 text-xs text-muted-foreground">
                                     <span>Generated: {formatPST(caseItem.created_at)}</span>
@@ -670,11 +671,17 @@ export default function TestRunPage() {
                         </div>
                         <div>
                             <h5 className="font-semibold">Full Prompt:</h5>
-                            <pre className="mt-1 whitespace-pre-wrap font-sans text-sm">{testCase.prompt}</pre>
+                            <pre className="mt-1 p-3 bg-background border rounded-md whitespace-pre-wrap font-sans text-sm">
+                                {testCase.prompt}
+                            </pre>
                         </div>
                         <div>
                             <h5 className="font-semibold">Response:</h5>
-                            <pre className="mt-1 whitespace-pre-wrap font-sans text-sm">{testCase.response}</pre>
+                            <div className="mt-1 p-3 bg-background border rounded-md prose prose-sm max-w-none">
+                                <ReactMarkdown>
+                                    {testCase.response}
+                                </ReactMarkdown>
+                            </div>
                         </div>
                         <div>
                             <h5 className="font-semibold">Latency:</h5>
