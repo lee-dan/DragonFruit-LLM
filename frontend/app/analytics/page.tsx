@@ -169,9 +169,9 @@ export default function AnalyticsPage() {
             icon={<Clock className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground" />}
           />
           <MetricCard
-            title="Failure Rate"
-            value={`${(metrics.failure_rate ?? 0).toFixed(2)}%`}
-            icon={<AlertTriangle className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground" />}
+            title="Success Rate"
+            value={`${(metrics.success_rate ?? 0).toFixed(2)}%`}
+            icon={<CheckCircle className="h-5 w-5 md:h-6 md:w-6 text-muted-foreground" />}
           />
           <MetricCard
             title="Hallucination Rate"

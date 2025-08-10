@@ -88,3 +88,20 @@ class EvolvedTestCase(Base):
     created_at = Column(DateTime, default=datetime.datetime.utcnow)
 
     original_test_case = relationship("TestCase")
+
+
+class BusinessRule(Base):
+    __tablename__ = "business_rules"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=False)
+    rule_type = Column(String, nullable=False)  # 'safety', 'business', 'compliance', etc.
+    constraint_text = Column(Text, nullable=False)  # The actual rule/constraint
+    severity = Column(String, default="MEDIUM")  # 'LOW', 'MEDIUM', 'HIGH', 'CRITICAL'
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    
+    # Optional: link to specific test runs or models
+    model_name = Column(String, nullable=True)  # If rule is model-specific
+    test_run_id = Column(Integer, ForeignKey("test_runs.id"), nullable=True)

@@ -8,7 +8,8 @@ from services import (
     input_generator, 
     failure_analysis_service, 
     dataset_service,
-    hard_case_mining_service
+    hard_case_mining_service,
+    business_rules_service
 )
 from fastapi import BackgroundTasks
 from langchain_openai import ChatOpenAI
@@ -79,7 +80,25 @@ def run_stress_test(run_id: int):
             
             llm_failures = []
             if test_run.detect_failures_llm:
-                llm_failures = failure_analysis_service.detect_failures_with_llm(prompt, response_text)
+                # Get active business rules for this model
+                business_rules = business_rules_service.get_business_rules(
+                    db, 
+                    model_name=test_run.model_name
+                )
+                business_rules_dict = [
+                    {
+                        "name": rule.name,
+                        "constraint_text": rule.constraint_text,
+                        "severity": rule.severity
+                    }
+                    for rule in business_rules
+                ]
+                
+                llm_failures = failure_analysis_service.detect_failures_with_llm(
+                    prompt, 
+                    response_text, 
+                    business_rules=business_rules_dict
+                )
 
             is_failure = is_hallucination or len(llm_failures) > 0
 
@@ -104,9 +123,14 @@ def run_stress_test(run_id: int):
                 db.add(failure_log)
             
             for failure in llm_failures:
+                # Map POLICY_VIOLATION to POLICY to match the schema enum
+                failure_type = failure["failure_type"]
+                if failure_type == "POLICY_VIOLATION":
+                    failure_type = "POLICY"
+                
                 failure_log = schemas.FailureLog(
                     test_case_id=test_case.id,
-                    failure_type=schemas.FailureType[failure["failure_type"]],
+                    failure_type=schemas.FailureType[failure_type],
                     log_message=failure["explanation"]
                 )
                 db.add(failure_log)
@@ -139,13 +163,13 @@ def get_dashboard_metrics(db: Session):
     active_runs = db.query(schemas.TestRun).filter(schemas.TestRun.status == 'RUNNING').count()
 
     total_failures = db.query(schemas.TestCase).filter(schemas.TestCase.is_failure == True).count()
-    failure_rate = (total_failures / total_test_cases) * 100 if total_test_cases > 0 else 0
+    success_rate = ((total_test_cases - total_failures) / total_test_cases) * 100 if total_test_cases > 0 else 0
     
     hallucination_failures = db.query(schemas.FailureLog).filter(schemas.FailureLog.failure_type == 'HALLUCINATION').count()
     hallucination_rate = (hallucination_failures / total_test_cases) * 100 if total_test_cases > 0 else 0
 
-    # Failure rate trend for the last 24 hours
-    failure_rate_trend = []
+    # Success rate trend for the last 24 hours
+    success_rate_trend = []
     now = datetime.utcnow()
     for i in range(24):
         hour_start = now - timedelta(hours=i + 1)
@@ -160,10 +184,10 @@ def get_dashboard_metrics(db: Session):
             schemas.TestCase.created_at.between(hour_start, hour_end)
         ).count()
 
-        hourly_failure_rate = (failures_in_hour / cases_in_hour) * 100 if cases_in_hour > 0 else 0
-        failure_rate_trend.append({"date": hour_start.strftime("%H:00"), "rate": hourly_failure_rate})
+        hourly_success_rate = ((cases_in_hour - failures_in_hour) / cases_in_hour) * 100 if cases_in_hour > 0 else 0
+        success_rate_trend.append({"date": hour_start.strftime("%H:00"), "rate": hourly_success_rate})
     
-    failure_rate_trend.reverse()
+    success_rate_trend.reverse()
 
     # Failure types breakdown
     failure_types = db.query(schemas.FailureLog.failure_type, func.count(schemas.FailureLog.id)).group_by(schemas.FailureLog.failure_type).all()
@@ -174,8 +198,8 @@ def get_dashboard_metrics(db: Session):
         "total_runs": total_runs,
         "total_test_cases": total_test_cases,
         "active_runs": active_runs,
-        "failure_rate": failure_rate,
+        "success_rate": success_rate,
         "hallucination_rate": hallucination_rate,
         "failure_breakdown": failure_breakdown,
-        "failure_rate_trend": failure_rate_trend,
+        "success_rate_trend": success_rate_trend,
     }
