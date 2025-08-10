@@ -18,23 +18,19 @@ python -m venv venv
 source venv/bin/activate  # or .\venv\Scripts\activate on Windows
 pip install -r requirements.txt
 
-# 2. Configure API keys
+# 2. Configure backend API keys
 echo 'OPENAI_API_KEY="your-key-here"' > .env
-echo 'ANTHROPIC_API_KEY="your-key-here"' >> .env
 
 # 3. Start backend
 uvicorn main:app --reload  # Runs on http://localhost:8000
 
-# 4. Setup and start Vercel AI Bridge (new terminal)
-cd ../vercel-ai-bridge
-npm install
-cp env.example .env
-# Add your API keys to .env
-npm start  # Runs on http://localhost:3001
-
-# 5. Setup and start frontend (new terminal)
+# 4. Setup and start frontend with integrated AI Bridge (new terminal)
 cd ../frontend
 npm install
+# Create .env.local and add your AI provider API keys:
+# OPENAI_API_KEY=your_key_here
+# ANTHROPIC_API_KEY=your_key_here
+# GOOGLE_GENERATIVE_AI_API_KEY=your_key_here
 npm run dev  # Runs on http://localhost:3000
 ```
 
@@ -118,22 +114,26 @@ Ensure AI models are **reliable**, **safe**, **compliant**, and **performant** i
 FailProof employs a modern, scalable microservices architecture:
 
 ```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Frontend      │    │   AI Bridge     │    │   Backend       │
-│   (Next.js)     │◄──►│   (Node.js)     │◄──►│   (FastAPI)     │
-│   Port: 3000    │    │   Port: 3001    │    │   Port: 8000    │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-         │                       │                       │
-         │              ┌─────────────────┐              │
-         └─────────────►│   Database      │◄─────────────┘
-                        │   (SQLite)      │
-                        └─────────────────┘
+┌─────────────────────────────────────────────┐    ┌─────────────────┐
+│   Frontend + AI Bridge (Next.js)           │    │   Backend       │
+│   ┌─────────────────┐  ┌─────────────────┐ │    │   (FastAPI)     │
+│   │   UI/Dashboard  │  │   API Routes    │ │◄──►│   Port: 8000    │
+│   │   (React)       │  │   /api/ai-bridge│ │    │                 │
+│   │   Port: 3000    │  │   (200+ Models) │ │    │                 │
+│   └─────────────────┘  └─────────────────┘ │    │                 │
+└─────────────────────────────────────────────┘    └─────────────────┘
+                    │                                       │
+                    │              ┌─────────────────┐      │
+                    └─────────────►│   Database      │◄─────┘
+                                   │   (SQLite)      │
+                                   └─────────────────┘
 ```
 
 ### Component Overview
 
-- **Frontend (Next.js)**: Modern React-based dashboard for test management and visualization
-- **AI Bridge (Node.js)**: Vercel AI SDK integration layer providing unified access to 200+ AI models
+- **Frontend + AI Bridge (Next.js)**: Integrated React dashboard with built-in AI Bridge using Next.js API routes
+  - UI/Dashboard for test management and visualization  
+  - API Routes (`/api/ai-bridge/*`) providing unified access to 200+ AI models
 - **Backend (FastAPI)**: Core testing engine with business logic and data management
 - **Database (SQLite)**: Persistent storage for test configurations, results, and analytics
 
@@ -176,19 +176,18 @@ cp .env.example .env
 # Edit .env with your API keys and configuration
 ```
 
-#### 3. Vercel AI Bridge Setup
+#### 3. Frontend Setup (includes AI Bridge)
 ```bash
-cd ../vercel-ai-bridge
+cd ../frontend
 
 # Install Node.js dependencies
 npm install
 
-# Configure environment
-cp env.example .env
-# Add API keys for desired providers:
+# Configure environment for AI providers
+# Create .env.local and add your API keys:
 # OPENAI_API_KEY=your_openai_key
 # ANTHROPIC_API_KEY=your_anthropic_key
-# GOOGLE_API_KEY=your_google_key
+# GOOGLE_GENERATIVE_AI_API_KEY=your_google_key
 # XAI_API_KEY=your_xai_key
 # MISTRAL_API_KEY=your_mistral_key
 # GROQ_API_KEY=your_groq_key
@@ -197,18 +196,7 @@ cp env.example .env
 # PERPLEXITY_API_KEY=your_perplexity_key
 ```
 
-#### 4. Frontend Setup
-```bash
-cd ../frontend
-
-# Install dependencies
-npm install
-
-# Configure environment (if needed)
-cp .env.example .env.local
-```
-
-#### 5. Database Initialization
+#### 4. Database Initialization
 ```bash
 cd ../backend
 
@@ -225,11 +213,7 @@ cd backend
 source venv/bin/activate
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 
-# Terminal 2: AI Bridge
-cd vercel-ai-bridge
-npm start
-
-# Terminal 3: Frontend
+# Terminal 2: Frontend (includes AI Bridge)
 cd frontend
 npm run dev
 ```
@@ -240,12 +224,7 @@ npm run dev
 cd backend
 uvicorn main:app --host 0.0.0.0 --port 8000
 
-# AI Bridge
-cd vercel-ai-bridge
-npm run build
-npm run start
-
-# Frontend
+# Frontend (includes AI Bridge)
 cd frontend
 npm run build
 npm start

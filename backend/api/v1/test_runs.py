@@ -11,11 +11,23 @@ router = APIRouter()
 
 
 @router.get("/dashboard-metrics/", response_model=DashboardMetrics)
-def get_dashboard_metrics_endpoint(db: Session = Depends(get_db)):
+def get_dashboard_metrics_endpoint(
+    time_range_hours: int = 24,
+    db: Session = Depends(get_db)
+):
     """
     Returns the metrics for the dashboard.
+    
+    Args:
+        time_range_hours: Time range in hours for the trend data (default: 24)
+                         Supported values: 1, 6, 24, 168 (1 week)
     """
-    return test_runner_service.get_dashboard_metrics(db)
+    # Validate time range
+    allowed_ranges = [1, 6, 24, 168]
+    if time_range_hours not in allowed_ranges:
+        time_range_hours = 24
+    
+    return test_runner_service.get_dashboard_metrics(db, time_range_hours)
 
 
 @router.post("/", response_model=TestRunInDB)

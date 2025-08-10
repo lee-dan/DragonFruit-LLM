@@ -176,9 +176,12 @@ def run_stress_test(run_id: int):
     finally:
         db.close()
 
-def get_dashboard_metrics(db: Session):
+def get_dashboard_metrics(db: Session, time_range_hours: int = 24):
     """
     Calculates and returns the metrics for the dashboard.
+    
+    Args:
+        time_range_hours: Time range in hours for the trend data
     """
     total_runs = db.query(schemas.TestRun).count()
     total_test_cases = db.query(schemas.TestCase).count()
@@ -190,26 +193,70 @@ def get_dashboard_metrics(db: Session):
     hallucination_failures = db.query(schemas.FailureLog).filter(schemas.FailureLog.failure_type == 'HALLUCINATION').count()
     hallucination_rate = (hallucination_failures / total_test_cases) * 100 if total_test_cases > 0 else 0
 
-    # Success rate trend for the last 24 hours
+    # Success rate trend for the specified time range
     success_rate_trend = []
     now = datetime.utcnow()
-    for i in range(24):
-        hour_start = now - timedelta(hours=i + 1)
-        hour_end = now - timedelta(hours=i)
+    
+    # Determine granularity based on time range
+    if time_range_hours <= 1:
+        # For 1 hour: 10-minute intervals
+        intervals = 6
+        interval_minutes = 10
+        time_format = "%H:%M"
+    elif time_range_hours <= 6:
+        # For 6 hours: 30-minute intervals
+        intervals = 12
+        interval_minutes = 30
+        time_format = "%H:%M"
+    elif time_range_hours <= 24:
+        # For 24 hours: 1-hour intervals
+        intervals = time_range_hours
+        interval_minutes = 60
+        time_format = "%H:00"
+    else:
+        # For 1 week: 6-hour intervals
+        intervals = 28
+        interval_minutes = 360
+        time_format = "%m/%d %H:00"
+    
+    for i in range(intervals):
+        if time_range_hours <= 1:
+            interval_start = now - timedelta(minutes=(i + 1) * interval_minutes)
+            interval_end = now - timedelta(minutes=i * interval_minutes)
+        else:
+            interval_start = now - timedelta(minutes=(i + 1) * interval_minutes)
+            interval_end = now - timedelta(minutes=i * interval_minutes)
 
-        cases_in_hour = db.query(schemas.TestCase).filter(
-            schemas.TestCase.created_at.between(hour_start, hour_end)
+        cases_in_interval = db.query(schemas.TestCase).filter(
+            schemas.TestCase.created_at.between(interval_start, interval_end)
         ).count()
 
-        failures_in_hour = db.query(schemas.TestCase).filter(
+        failures_in_interval = db.query(schemas.TestCase).filter(
             schemas.TestCase.is_failure == True,
-            schemas.TestCase.created_at.between(hour_start, hour_end)
+            schemas.TestCase.created_at.between(interval_start, interval_end)
         ).count()
 
-        hourly_success_rate = ((cases_in_hour - failures_in_hour) / cases_in_hour) * 100 if cases_in_hour > 0 else 0
-        success_rate_trend.append({"date": hour_start.strftime("%H:00"), "rate": hourly_success_rate})
+        if cases_in_interval > 0:
+            interval_success_rate = ((cases_in_interval - failures_in_interval) / cases_in_interval) * 100
+        else:
+            # For intervals with no data, use null instead of 0 to avoid misleading flat lines
+            interval_success_rate = None
+        
+        success_rate_trend.append({
+            "date": interval_start.strftime(time_format), 
+            "rate": interval_success_rate,
+            "cases": cases_in_interval  # Add case count for debugging
+        })
     
     success_rate_trend.reverse()
+    
+    # Add metadata about data quality
+    total_intervals_with_data = sum(1 for item in success_rate_trend if item['rate'] is not None)
+    data_quality = {
+        "total_intervals": len(success_rate_trend),
+        "intervals_with_data": total_intervals_with_data,
+        "data_coverage_percent": (total_intervals_with_data / len(success_rate_trend)) * 100 if success_rate_trend else 0
+    }
 
     # Failure types breakdown
     failure_types = db.query(schemas.FailureLog.failure_type, func.count(schemas.FailureLog.id)).group_by(schemas.FailureLog.failure_type).all()
@@ -224,4 +271,5 @@ def get_dashboard_metrics(db: Session):
         "hallucination_rate": hallucination_rate,
         "failure_breakdown": failure_breakdown,
         "success_rate_trend": success_rate_trend,
+        "data_quality": data_quality,
     }
