@@ -2,6 +2,11 @@
 BIG-bench-main/
 ShED-HD-main/
 
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+
 # C extensions
 *.so
 
