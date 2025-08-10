@@ -16,7 +16,8 @@ class VercelAIBridge:
     """
     
     def __init__(self, bridge_url: str = None):
-        self.bridge_url = (bridge_url or os.getenv('VERCEL_BRIDGE_URL', 'http://localhost:3001')).rstrip('/')
+        # Updated to use Next.js API routes instead of separate bridge server
+        self.bridge_url = (bridge_url or os.getenv('VERCEL_BRIDGE_URL', 'http://localhost:3000')).rstrip('/')
         self.session = requests.Session()
         self.session.headers.update({
             'Content-Type': 'application/json',
@@ -28,7 +29,7 @@ class VercelAIBridge:
     def is_available(self) -> bool:
         """Check if the bridge server is available."""
         try:
-            response = self.session.get(f"{self.bridge_url}/health", timeout=2)
+            response = self.session.get(f"{self.bridge_url}/api/ai-bridge/health", timeout=2)
             return response.status_code == 200
         except:
             return False
@@ -40,9 +41,13 @@ class VercelAIBridge:
         Returns a list of models compatible with the existing backend format.
         """
         try:
-            response = self.session.get(f"{self.bridge_url}/models", timeout=10)
+            response = self.session.get(f"{self.bridge_url}/api/ai-bridge/models", timeout=10)
             response.raise_for_status()
             data = response.json()
+            
+            # Handle Next.js API response format
+            if 'data' in data:
+                data = data['data']
             
             # Transform to match existing backend model format
             models = []
@@ -87,16 +92,20 @@ class VercelAIBridge:
         
         try:
             response = self.session.post(
-                f"{self.bridge_url}/generate",
+                f"{self.bridge_url}/api/ai-bridge/generate",
                 json=payload,
                 timeout=60  # Longer timeout for generation
             )
             response.raise_for_status()
             data = response.json()
             
+            # Handle Next.js API response format
+            if 'data' in data:
+                data = data['data']
+            
             # Transform response to match LangChain format
             return {
-                'content': data.get('text', ''),
+                'content': data.get('content', ''),
                 'response_metadata': {
                     'model': data.get('model'),
                     'usage': data.get('usage', {}),
@@ -134,12 +143,40 @@ def get_vercel_bridge() -> VercelAIBridge:
 
 def is_vercel_model(model_name: str) -> bool:
     """Check if a model name corresponds to a Vercel AI SDK model."""
-    bridge = get_vercel_bridge()
-    if not bridge.is_available():
-        return False
+    # List of models that should use the Vercel AI Bridge
+    vercel_models = [
+        # OpenAI models
+        'gpt-4.1', 'gpt-4.1-mini', 'gpt-4.1-nano', 'o4-mini', 'o3', 'o3-mini', 'o1', 'o1-preview', 'o1-mini',
+        'gpt-4o', 'gpt-4o-mini', 'gpt-4o-2024-11-20', 'chatgpt-4o-latest', 'gpt-4-turbo', 'gpt-4',
+        
+        # Anthropic models
+        'claude-opus-4-latest', 'claude-sonnet-4-latest', 'claude-3-7-sonnet-latest',
+        'claude-3-5-sonnet-latest', 'claude-3-5-haiku-latest', 'claude-3-5-sonnet-20241022', 'claude-3-5-haiku-20241022',
+        'claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307',
+        
+        # Google models
+        'gemini-2.0-flash-exp', 'gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-1.0-pro',
+        
+        # xAI models
+        'grok-4', 'grok-3', 'grok-3-fast', 'grok-3-mini', 'grok-beta', 'grok-vision-beta',
+        
+        # Mistral models
+        'pixtral-large-latest', 'mistral-large-latest', 'mistral-medium-latest', 'mistral-small-latest',
+        
+        # Groq models
+        'llama-3.1-70b-versatile', 'llama-3.1-8b-instant', 'mixtral-8x7b-32768',
+        
+        # Cohere models
+        'command-r-plus', 'command-r',
+        
+        # Fireworks models
+        'llama-v3p1-405b-instruct', 'llama-v3p1-70b-instruct',
+        
+        # Perplexity models
+        'llama-3.1-sonar-large-128k-online', 'llama-3.1-sonar-small-128k-online'
+    ]
     
-    available_models = bridge.get_available_models()
-    return any(model['id'] == model_name for model in available_models)
+    return model_name in vercel_models
 
 def get_all_available_models() -> List[Dict[str, Any]]:
     """

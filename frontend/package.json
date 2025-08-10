@@ -9,6 +9,15 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^2.0.1",
+    "@ai-sdk/cohere": "^2.0.1",
+    "@ai-sdk/fireworks": "^1.0.4",
+    "@ai-sdk/google": "^2.0.3",
+    "@ai-sdk/groq": "^2.0.4",
+    "@ai-sdk/mistral": "^2.0.1",
+    "@ai-sdk/openai": "^2.0.8",
+    "@ai-sdk/perplexity": "^2.0.1",
+    "@ai-sdk/xai": "^2.0.4",
     "@hookform/resolvers": "^5.2.1",
     "@radix-ui/react-accordion": "^1.2.11",
     "@radix-ui/react-alert-dialog": "^1.1.14",
@@ -26,6 +35,7 @@
     "@radix-ui/react-tabs": "^1.1.12",
     "@tanstack/react-query": "^5.84.2",
     "@tanstack/react-query-devtools": "^5.84.2",
+    "ai": "^5.0.8",
     "axios": "^1.11.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",

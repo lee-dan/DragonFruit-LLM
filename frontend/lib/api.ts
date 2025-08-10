@@ -109,8 +109,10 @@ export const getTestRun = async (run_id: number): Promise<TestRun> => {
   return response.data;
 };
 
-export const getDashboardMetrics = async (): Promise<DashboardMetrics> => {
-  const response = await apiClient.get("/test-runs/dashboard-metrics/");
+export const getDashboardMetrics = async (timeRangeHours: number = 24): Promise<DashboardMetrics> => {
+  const response = await apiClient.get("/test-runs/dashboard-metrics/", {
+    params: { time_range_hours: timeRangeHours }
+  });
   return response.data;
 };
 
@@ -139,6 +141,28 @@ export const getEvolvedCases = async (run_id: number): Promise<EvolvedTestCase[]
 }
 
 export const getAvailableModels = async (): Promise<ModelsResponse> => {
-    const response = await apiClient.get("/models/available");
-    return response.data;
+    // Use Next.js API route instead of backend
+    const response = await fetch("/api/ai-bridge/models");
+    const data = await response.json();
+    
+    if (!data.success) {
+        throw new Error(data.error || 'Failed to fetch models');
+    }
+    
+    // Transform the response to match the expected format
+    const modelsData = data.data;
+    return {
+        total_models: modelsData.total,
+        total_providers: modelsData.providers.length,
+        vercel_bridge_available: true,
+        models: modelsData.models,
+        by_provider: modelsData.models.reduce((acc: Record<string, AIModel[]>, model: AIModel) => {
+            if (!acc[model.provider]) {
+                acc[model.provider] = [];
+            }
+            acc[model.provider].push(model);
+            return acc;
+        }, {}),
+        providers: modelsData.providers
+    };
 }
