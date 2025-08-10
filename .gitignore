@@ -117,3 +117,5 @@ out/
 
 # SQLite
 test.db
+
+**__pycache__**
