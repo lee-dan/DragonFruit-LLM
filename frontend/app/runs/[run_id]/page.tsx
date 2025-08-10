@@ -283,6 +283,10 @@ export default function TestRunPage() {
                         <h4 className="font-semibold">Evolved Cases</h4>
                         <p>{testRun.use_evolved_cases ? "Enabled" : "Disabled"}</p>
                     </div>
+                    <div>
+                        <h4 className="font-semibold">Business Rules</h4>
+                        <p>{testRun.detect_failures_llm ? "Enabled (LLM-as-a-Judge)" : "Disabled"}</p>
+                    </div>
                 </CardContent>
             </Card>
             <Card>

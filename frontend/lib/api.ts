@@ -18,6 +18,8 @@ export interface TestRun {
   mutators: string[];
   datasets: string[];
   use_evolved_cases: boolean;
+  detect_hallucinations: boolean;
+  detect_failures_llm: boolean;
   total_cases: number;
   completed_cases: number;
 }
@@ -70,6 +72,25 @@ export interface DeveloperInsight {
   severity: string;
 }
 
+export interface AIModel {
+  id: string;
+  name: string;
+  provider: string;
+  pricing: string;
+  context_length: string;
+  type: string;
+  available: boolean;
+}
+
+export interface ModelsResponse {
+  total_models: number;
+  total_providers: number;
+  vercel_bridge_available: boolean;
+  models: AIModel[];
+  by_provider: Record<string, AIModel[]>;
+  providers: string[];
+}
+
 // API Functions
 export const createTestRun = async (
     formData: any // Using 'any' for simplicity, could be a more specific type
@@ -114,5 +135,10 @@ export const cancelTestRun = async (run_id: number): Promise<TestRun> => {
 
 export const getEvolvedCases = async (run_id: number): Promise<EvolvedTestCase[]> => {
     const response = await apiClient.get(`/test-runs/${run_id}/evolved-cases`);
+    return response.data;
+}
+
+export const getAvailableModels = async (): Promise<ModelsResponse> => {
+    const response = await apiClient.get("/models/available");
     return response.data;
 }
