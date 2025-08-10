@@ -79,10 +79,12 @@ def get_evolved_cases_for_run(run_id: int, db: Session = Depends(get_db)):
     """
     Retrieves all evolved test cases generated from a specific test run.
     """
-    failed_case_ids = db.query(schemas.TestCase.id).filter(
+    from sqlalchemy import select
+    
+    failed_case_ids = select(schemas.TestCase.id).where(
         schemas.TestCase.test_run_id == run_id,
         schemas.TestCase.is_failure == True
-    ).subquery()
+    )
 
     evolved_cases = db.query(schemas.EvolvedTestCase).filter(
         schemas.EvolvedTestCase.original_test_case_id.in_(failed_case_ids)

@@ -44,10 +44,10 @@ export interface DashboardMetrics {
   total_runs: number;
   total_test_cases: number;
   active_runs: number;
-  failure_rate: number;
+  success_rate: number;
   hallucination_rate: number;
   failure_breakdown: Record<string, number>;
-  failure_rate_trend: { date: string; rate: number }[];
+  success_rate_trend: { date: string; rate: number }[];
 }
 
 export interface BigBenchTask {

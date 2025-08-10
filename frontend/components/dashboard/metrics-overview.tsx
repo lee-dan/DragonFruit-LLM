@@ -5,6 +5,7 @@ import {
   Shield,
   TestTube2,
   Zap,
+  CheckCircle,
 } from "lucide-react"
 import {
     Area,
@@ -103,22 +104,22 @@ export function MetricsOverview() {
   return (
     <div className="grid gap-4 md:gap-6 md:grid-cols-2 lg:grid-cols-3">
       <MetricCard
-        title="Failure Rate"
-        value={`${(metrics.failure_rate ?? 0).toFixed(2)}%`}
+        title="Success Rate"
+        value={`${(metrics.success_rate ?? 0).toFixed(2)}%`}
         description="24-hour trend"
-        icon={AlertTriangle}
-        color="destructive"
+        icon={CheckCircle}
+        color="success"
       >
-        {metrics.failure_rate_trend && metrics.failure_rate_trend.length > 0 ? (
+        {metrics.success_rate_trend && metrics.success_rate_trend.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={metrics.failure_rate_trend}>
+                <AreaChart data={metrics.success_rate_trend}>
                     <defs>
                         <linearGradient id="colorRate" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor="#ef4444" stopOpacity={0.4}/>
-                            <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                            <stop offset="5%" stopColor="#22c55e" stopOpacity={0.4}/>
+                            <stop offset="95%" stopColor="#22c55e" stopOpacity={0}/>
                         </linearGradient>
                     </defs>
-                    <Area type="monotone" dataKey="rate" stroke="#ef4444" fillOpacity={1} fill="url(#colorRate)" />
+                    <Area type="monotone" dataKey="rate" stroke="#22c55e" fillOpacity={1} fill="url(#colorRate)" />
                 </AreaChart>
             </ResponsiveContainer>
         ) : (

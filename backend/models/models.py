@@ -8,10 +8,10 @@ class DashboardMetrics(BaseModel):
     total_runs: int
     total_test_cases: int
     active_runs: int
-    failure_rate: float
+    success_rate: float
     hallucination_rate: float
     failure_breakdown: dict[str, int]
-    failure_rate_trend: List[dict[str, Any]]
+    success_rate_trend: List[dict[str, Any]]
 
 
 class TestCaseBase(BaseModel):
