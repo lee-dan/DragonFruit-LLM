@@ -11,6 +11,7 @@ from services import (
     hard_case_mining_service,
     business_rules_service
 )
+from services.vercel_ai_bridge import get_vercel_bridge, is_vercel_model
 from fastapi import BackgroundTasks
 from langchain_openai import ChatOpenAI
 from sqlalchemy import func
@@ -31,7 +32,17 @@ def run_stress_test(run_id: int):
         test_run.status = schemas.TestRunStatus.RUNNING
         db.commit()
 
-        llm = ChatOpenAI(openai_api_key=os.getenv("OPENAI_API_KEY"), model_name=test_run.model_name)
+        # Determine which LLM interface to use
+        if is_vercel_model(test_run.model_name):
+            # Use Vercel AI Bridge for Vercel SDK models
+            print(f"Using Vercel AI Bridge for model: {test_run.model_name}")
+            bridge = get_vercel_bridge()
+            llm = None  # We'll use bridge.generate_text() directly
+        else:
+            # Use traditional LangChain for existing models
+            print(f"Using LangChain for model: {test_run.model_name}")
+            llm = ChatOpenAI(openai_api_key=os.getenv("OPENAI_API_KEY"), model_name=test_run.model_name)
+            bridge = None
         
         mutators = test_run.mutators
         datasets = test_run.datasets
@@ -64,10 +75,21 @@ def run_stress_test(run_id: int):
             start_time = time.time()
             
             try:
-                # We need to get logprobs for ShED-HD
-                response = llm.invoke(prompt, logprobs=True)
-                response_text = response.content
-                logprobs = response.response_metadata.get("logprobs", {}).get("content", [])
+                if bridge:
+                    # Use Vercel AI Bridge
+                    response = bridge.generate_text(
+                        model_name=test_run.model_name,
+                        prompt=prompt,
+                        max_tokens=1000,
+                        temperature=0.7
+                    )
+                    response_text = response.get('content', '')
+                    logprobs = []  # Vercel AI SDK doesn't provide logprobs yet
+                else:
+                    # Use traditional LangChain
+                    response = llm.invoke(prompt, logprobs=True)
+                    response_text = response.content
+                    logprobs = response.response_metadata.get("logprobs", {}).get("content", [])
             except Exception as e:
                 response_text = f"Error calling LLM: {e}"
                 logprobs = []
