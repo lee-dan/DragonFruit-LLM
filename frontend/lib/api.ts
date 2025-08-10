@@ -72,6 +72,24 @@ export interface DeveloperInsight {
   severity: string;
 }
 
+export interface HallucinationRequest {
+  prompt: string;
+  max_tokens?: number;
+  temperature?: number;
+  top_p?: number;
+}
+
+export interface HallucinationResponse {
+  answer: string;
+  is_hallucination: boolean;
+  confidence: number;
+  class_probabilities: number[];
+  average_entropy?: number;
+  entropy_std?: number;
+  token_entropies: number[];
+  entropy_sequence: number[];  // Clean entropy sequence for charting
+  error?: string;
+
 export interface AIModel {
   id: string;
   name: string;
@@ -139,6 +157,16 @@ export const getEvolvedCases = async (run_id: number): Promise<EvolvedTestCase[]
     const response = await apiClient.get(`/test-runs/${run_id}/evolved-cases`);
     return response.data;
 }
+
+export const detectHallucination = async (request: HallucinationRequest): Promise<HallucinationResponse> => {
+    const response = await apiClient.post("/hallucinations/detect", request);
+    return response.data;
+};
+
+export const getHallucinationHealth = async (): Promise<any> => {
+    const response = await apiClient.get("/hallucinations/health");
+    return response.data;
+};
 
 export const getAvailableModels = async (): Promise<ModelsResponse> => {
     // Use Next.js API route instead of backend

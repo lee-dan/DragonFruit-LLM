@@ -29,6 +29,7 @@ const navLinks = [
   { href: "/analytics", label: "Analytics" },
   { href: "/models", label: "Models" },
   { href: "/business-rules", label: "Business Rules" },
+  { href: "/hallucinations", label: "Hallucinations (Beta)" }
 ]
 
 function ThemeToggle() {
