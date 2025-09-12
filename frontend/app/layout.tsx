@@ -12,23 +12,20 @@ const ibmPlexMono = IBM_Plex_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "DragonFruit - LLM Stress Testing Platform",
+  title: "Lightscale",
   description: "Comprehensive LLM stress testing and robustness evaluation platform",
   keywords: ["LLM", "AI", "testing", "robustness", "hallucination detection"],
-  authors: [{ name: "DragonFruit Team" }],
-  creator: "DragonFruit Team",
+  authors: [{ name: "Lightscale Team" }],
+  creator: "Lightscale Team",
   openGraph: {
-    title: "DragonFruit - LLM Stress Testing Platform",
+    title: "Lightscale",
     description: "Comprehensive LLM stress testing and robustness evaluation platform",
     type: "website",
   },
   icons: {
-    icon: [
-      { url: '/favicon_io/favicon-16x16.png', sizes: '16x16', type: 'image/png' },
-      { url: '/favicon_io/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
-    ],
-    shortcut: '/favicon_io/favicon.ico',
-    apple: '/favicon_io/apple-touch-icon.png',
+    icon: '/icononly_transparent.png',
+    shortcut: '/icononly_transparent.png',
+    apple: '/icononly_transparent.png',
   },
 }
 
